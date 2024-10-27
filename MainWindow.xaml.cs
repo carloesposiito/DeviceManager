@@ -1,4 +1,5 @@
-﻿using GoogleBackupManager.Functions;
+﻿using GoogleBackupManager.Model.Exceptions;
+using GoogleBackupManager.Functions;
 using GoogleBackupManager.Model;
 using GoogleBackupManager.UI;
 using System;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,6 +19,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace GoogleBackupManager
 {
@@ -29,21 +32,29 @@ namespace GoogleBackupManager
         {
             InitializeComponent();
 
-#if DEBUG
-            MessageDialog testMessageDialog = new MessageDialog("Test message dialog, visible only in debug mode!");
-            testMessageDialog.ShowDialog();
-#endif
-
             try
             {
                 ADB.InitializeConnection();
+
+
+
+
                 RefreshConnectedDevices(true);
             }
-            catch (Exception ex)
+            catch (NoDevicesException ex)
+            {
+                MessageDialog messageDialog = new MessageDialog($"{ex.Message}\nTry to connect smartphone via WiFi");
+                messageDialog.ShowDialog();
+            }
+            catch (DirectoryNotFoundException ex)
             {
                 MessageDialog messageDialog = new MessageDialog($"Error while initializing connection:\n{ex.Message}\nAborting program...");
                 messageDialog.ShowDialog();
                 Process.GetCurrentProcess().Kill();
+            }
+            finally
+            {
+                RefreshConnectedDevices();
             }
 
             /* To do:
@@ -78,5 +89,45 @@ namespace GoogleBackupManager
             }
         }
 
+
+
+
+        private void button_PairWiFiDevice_Click(object sender, RoutedEventArgs e)
+        {
+            //string deviceIp = textBox_DeviceIp.Text;
+            //string devicePort = textbox_DevicePort.Text;
+            //string devicePairingCode = textbox_DevicePairingCode.Text;
+
+            //// Check valid ip and port
+            //if (IPAddress.TryParse(deviceIp, out IPAddress parsedIpAddress) && int.TryParse(devicePort, out int parsedDevicePort))
+            //{
+            //    if (devicePairingCode.Equals("Undefined"))
+            //    {
+            //        if (!ADB.ConnectWirelessDevice(deviceIp, devicePort))
+            //        {
+            //            MessageDialog messageDialog = new MessageDialog("Connection failed!\nTry to pair device via pairing code.");
+            //            messageDialog.ShowDialog();
+            //        }
+            //    }
+            //    else
+            //    {
+            //        ADB.ConnectWirelessDevice(deviceIp, devicePort, devicePairingCode);
+            //    }
+
+            //    RefreshConnectedDevices();
+            //}
+            //else
+            //{
+            //    MessageDialog messageDialog = new MessageDialog("Check inserted ip and port addresses!");
+            //    messageDialog.ShowDialog();
+            //}            
+        }
+
+        private void button_RefreshDevices_Click(object sender, RoutedEventArgs e)
+        {
+            ADB.RefreshDevices();
+
+            RefreshConnectedDevices(true);
+        }
     }
 }

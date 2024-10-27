@@ -1,12 +1,16 @@
-﻿using GoogleBackupManager.Model;
+﻿using GoogleBackupManager.Model.Exceptions;
+using GoogleBackupManager.Model;
 using GoogleBackupManager.UI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
@@ -26,14 +30,10 @@ namespace GoogleBackupManager.Functions
         private static string _newDeviceFolder;
 
         private static List<Device> _connectedDevices = new List<Device>();
-        private static List<String> _unlimitedBackupDeviceNames = new List<String>()
-        {
-            "Pixel 1",
-            "Pixel 2",
-            "Pixel 3",
-            "Pixel 4",
-            "Pixel 5"
-        };
+
+        private static Process _cmdProcess = new Process();
+        private static List<string> _output = new List<string>();
+        private static List<string> _errors = new List<string>();
 
         #endregion
 
@@ -59,59 +59,152 @@ namespace GoogleBackupManager.Functions
 
             if (!Directory.Exists(_platformToolsDirectory))
             {
-                throw new DirectoryNotFoundException("Platform tools folder not found!");
+                throw new PlatformToolsException("Platform tools folder not found!");
             }
 
             #endregion
 
-            // Start adb server
+            #region "Configure process info"
+
+            _cmdProcess.StartInfo.CreateNoWindow = true;
+            _cmdProcess.StartInfo.FileName = "cmd.exe";
+            _cmdProcess.StartInfo.RedirectStandardInput = true;
+            _cmdProcess.StartInfo.RedirectStandardOutput = true;
+            _cmdProcess.StartInfo.RedirectStandardError = true;
+            _cmdProcess.StartInfo.UseShellExecute = false;
+            _cmdProcess.StartInfo.WorkingDirectory = _platformToolsDirectory;
+
+            // Add event to read received output data
+            // Exclude command sent by user
+            _cmdProcess.OutputDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrWhiteSpace(e.Data) && !e.Data.Contains("adb "))
+                {
+                    _output.Add(e.Data);
+                }
+            };
+
+            // Add event to read received errors
+            // Exclude command sent by user
+            _cmdProcess.ErrorDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrWhiteSpace(e.Data) && !e.Data.Contains("adb "))
+                {
+                    _errors.Add(e.Data);
+                }
+            };
+
+            // Start process
+            _cmdProcess.Start();
+            _cmdProcess.BeginOutputReadLine();
+            _cmdProcess.BeginErrorReadLine();
+
+            #endregion
+
+            #region "Preliminary operations"
+
+            // Set echo to off
+            SendCommand("@echo off");
+            ClearOutput();
+
             SendCommand("adb start-server");
+            ClearOutput();
+
+            #endregion
 
             ScanDevices();
+        }
+
+        internal static void ConnectWirelessDevice(string deviceIp, string devicePort, string devicePairingCode = "Undefined")
+        {
+            //if (devicePairingCode.Equals("Undefined"))
+            //{
+            //    string connectionOutput = SendCommand($"adb connect {deviceIp}:{devicePort}")[0];
+
+            //    if (!string.IsNullOrWhiteSpace(connectionOutput) && connectionOutput.Contains("connected"))
+            //    {
+            //        return true;
+            //    }
+            //    else
+            //    {
+            //        return false;
+            //    }
+            //}
+            //else
+            //{
+            //    return SendPairingCommand(deviceIp, devicePort, devicePairingCode);
+            //}
         }
 
         /// <summary>
         /// Scans connected devices and populates <see cref="ConnectedDevices"/> list.
         /// </summary>
-        /// <exception cref="UnauthorizedAccessException">Thrown when device is not authorized after three attempts.</exception>
+        /// <exception cref="NoDevicesException">Thrown when device is not authorized after three attempts.</exception>
         private static void ScanDevices()
         {
-            var devicesOutput = SendCommand("adb devices");
-            devicesOutput.RemoveAt(0);
-
-            foreach (string deviceOutput in devicesOutput)
+            List<String> unlimitedBackupDeviceNames = new List<String>()
             {
-                List<string> lineComponents = deviceOutput.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                string id = lineComponents[0].Trim();
-                bool authStatus = lineComponents[1].Trim() == "device" ? true : false;
+                "Pixel 1",
+                "Pixel 2",
+                "Pixel 3",
+                "Pixel 4",
+                "Pixel 5"
+            };
 
-                if (!authStatus)
-                {
-                    authStatus = AuthorizeDevice(id);
-                    if (!authStatus)
-                    {
-                        throw new UnauthorizedAccessException($"Authorizing device with ID = {id} failed!");
-                    }
-                }
+            SendCommand("adb devices");
 
-                string name = SendCommand($"adb -s {id} shell getprop ro.product.model")[0];
+            // Remove line containig "List of devices attached"
+            _output.RemoveAt(0);           
 
-                bool hasUnlimitedBackup = false;
-                foreach (string unlimitedBackupDeviceName in _unlimitedBackupDeviceNames)
-                {
-                    if (name.Contains(unlimitedBackupDeviceName))
-                    {
-                        hasUnlimitedBackup = true;
-                    }
-                }
-
-                // Add device to connected device list
-                ConnectedDevices.Add(new Device(name, id, authStatus, hasUnlimitedBackup));
+            // Check on remaining strings
+            if (_output.Count == 0)
+            {
+                throw new NoDevicesException("No devices connected!");
             }
-        }
+            else
+            {
+                List<string> devices = new List<string>(_output);
+                ClearOutput();
 
-        internal static void PairWirelessDevice()
-        {
+                foreach (string device in devices)
+                {
+                    // Get device id and authorization status
+                    List<string> lineParts = device.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+                    string name = "Undefined";
+                    string id = lineParts[0].Trim();
+                    bool authStatus = lineParts[1].Trim() == "device";
+                    bool hasUnlimitedBackup = false;
+
+                    if (authStatus)
+                    {
+                        // If device is authorized
+                        // Get device name
+                        SendCommand($"adb -s {id} shell getprop ro.product.model");
+                        name = _output.Last();
+
+                        // Check if device has unlimited backup
+                        foreach (string unlimitedBackupDeviceName in unlimitedBackupDeviceNames)
+                        {
+                            if (name.Contains(unlimitedBackupDeviceName))
+                            {
+                                hasUnlimitedBackup = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Device is not authorized
+                        // Try to authorize it for three times
+                        //authStatus = AuthorizeDevice(id);
+
+                    }
+
+                    // Add device to connected device list
+                    ConnectedDevices.Add(new Device(name, id, authStatus, hasUnlimitedBackup));
+                }
+            }
+
 
         }
 
@@ -119,42 +212,42 @@ namespace GoogleBackupManager.Functions
         /// Tries to authorize device described by parameters.
         /// </summary>
         /// <param name="deviceId">Id of the device to be authorized.</param>
-        private static bool AuthorizeDevice(string deviceId)
+        private static void AuthorizeDevice(string deviceId)
         {
-            bool isAuthorized = false;
+            //bool isAuthorized = false;
 
-            for (int i = 1; i <= 3; i++)
-            {
-                if (isAuthorized)
-                {
-                    break;
-                }
+            //for (int i = 1; i <= 3; i++)
+            //{
+            //    if (isAuthorized)
+            //    {
+            //        break;
+            //    }
 
-                SendCommand("adb kill-server");
-                SendCommand("adb devices");
+            //    SendCommand("adb kill-server");
+            //    SendCommand("adb devices");
 
-                // Wait for authorization
-                MessageDialog messageDialog = new MessageDialog(
-                    $"Please authorize this computer via the popup displayed on smartphone screen (ID: {deviceId}), then click OK!\n" +
-                    $"Attempt {i}/3");
-                messageDialog.ShowDialog();
+            //    // Wait for authorization
+            //    MessageDialog messageDialog = new MessageDialog(
+            //        $"Please authorize this computer via the popup displayed on smartphone screen (ID: {deviceId}), then click OK!\n" +
+            //        $"Attempt {i}/3");
+            //    messageDialog.ShowDialog();
 
-                // Check device auth status
-                List<string> devicesOutput = SendCommand("adb devices");
-                foreach (string line in devicesOutput)
-                {
-                    if (line.Contains(deviceId))
-                    {
-                        if (line.Contains("device"))
-                        {
-                            isAuthorized = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            return isAuthorized;
+            //    // Check device auth status
+            //    List<string> devicesOutput = SendCommand("adb devices");
+            //    foreach (string line in devicesOutput)
+            //    {
+            //        if (line.Contains(deviceId))
+            //        {
+            //            if (line.Contains("device"))
+            //            {
+            //                isAuthorized = true;
+            //                break;
+            //            }
+            //        }
+            //    }
+            //}
+
+            //return isAuthorized;
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -163,39 +256,77 @@ namespace GoogleBackupManager.Functions
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
+        internal static void RefreshDevices()
+        {
+            SendCommand("adb kill-server");
+            SendCommand("adb devices");
+        }
+
         /// <summary>
-        /// Create a command prompt in Platform Tools folder and executes command passed as parameter.<br/>
+        /// Executes command passed as parameter.<br/>
         /// </summary>
         /// <param name="command">Command to be executed.</param>
-        /// <returns>Output from command prompt as list of strings.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when command is an empty string.</exception>
-        private static List<string> SendCommand(string command)
+        /// <exception cref="CommandPromptException">Thrown if command prompt process is not active anymore.</exception>
+        internal static void SendCommand(string command)
         {
-            if (String.IsNullOrWhiteSpace(command))
+            if (!_cmdProcess.HasExited)
             {
-                throw new ArgumentNullException("Command not defined!");
-            };
+                // Write command
+                _cmdProcess.StandardInput.WriteLine(command);
+                _cmdProcess.StandardInput.Flush();
 
-            List<string> outputLines = new List<string>();
+                // Wait for response
+                Task.Delay(250).Wait();
+            }
+            else
+            {
+                throw new CommandPromptException("Command prompt process is not active anymore!");
+            }
+        }
 
-            // Create cmd process with command passed as parameter
-            Process process = new Process();
-            process.StartInfo.FileName = "cmd.exe";
-            process.StartInfo.WorkingDirectory = _platformToolsDirectory;
-            process.StartInfo.Arguments = $"/C {command}";
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.CreateNoWindow = true;
-            process.Start();
+        /// <summary>
+        /// Pair device via wireless ADB.
+        /// </summary>
+        /// <param name="deviceIp">Device IP address.</param>
+        /// <param name="devicePort">Device port address.</param>
+        /// <param name="devicePairingCode">Device pairing code.</param>
+        /// <returns>True if connection is successful, otherwise false.</returns>
+        private static void SendPairingCommand(string deviceIp, string devicePort, string devicePairingCode)
+        {
+            //using (Process pairProcess = new Process())
+            //{
+            //    // Start cmd process
+            //    pairProcess.StartInfo.FileName = "cmd.exe";
+            //    pairProcess.StartInfo.WorkingDirectory = _platformToolsDirectory;
+            //    pairProcess.StartInfo.UseShellExecute = false;
+            //    pairProcess.StartInfo.RedirectStandardInput = true;
+            //    pairProcess.StartInfo.RedirectStandardOutput = true;
+            //    pairProcess.StartInfo.RedirectStandardError = true;
+            //    pairProcess.StartInfo.CreateNoWindow = true;
+            //    pairProcess.Start();
 
-            // Read output
-            string output = process.StandardOutput.ReadToEnd();
+            //    // Read output
+            //    pairProcess.BeginOutputReadLine();
 
-            // Add to list splitting through new line characters
-            outputLines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            //    // Send commands
+            //    if (!pairProcess.HasExited)
+            //    {
+            //        // Send pair command
+            //        pairProcess.StandardInput.WriteLine($"adb pair {deviceIp}:{devicePort}");
+            //        pairProcess.StandardInput.Flush();
 
-            // Return output
-            return outputLines;
+            //        // Send connection command
+            //        pairProcess.StandardInput.WriteLine($"{devicePairingCode}");
+            //        pairProcess.StandardInput.Flush();
+
+            //        // Close command prompt
+            //        pairProcess.StandardInput.WriteLine("exit");
+            //        pairProcess.StandardInput.Flush();
+            //        pairProcess.Close();
+            //    }
+
+            //    return SendCommand($"adb connect {deviceIp}").Contains("connected");
+            //}
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -214,6 +345,12 @@ namespace GoogleBackupManager.Functions
             }
 
             _unlimitedDeviceFolder = $"{_programFilesFolder}\\";
+        }
+
+        private static void ClearOutput()
+        {
+            _output.Clear();
+            _errors.Clear();
         }
     }
 }

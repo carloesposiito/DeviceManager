@@ -8,7 +8,7 @@
         Title="MainWindow"
         Height="450"
         Width="800">
-    
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="70*" />
@@ -22,12 +22,66 @@
                 VerticalAlignment="Top"
                 Height="36"
                 Width="160"
-                x:Name="button_PairWiFiDevice" />
+                x:Name="button_PairWiFiDevice"
+                Click="button_PairWiFiDevice_Click" />
+
+        <Button Content="Ref"
+                Grid.Column="0"
+                HorizontalAlignment="Left"
+                Margin="142,52,0,0"
+                VerticalAlignment="Top"
+                Height="36"
+                Width="160"
+                x:Name="button_RefreshDevices"
+                Click="button_RefreshDevices_Click" />
 
         <RichTextBox Background="Black"
                      Foreground="White"
                      Grid.Column="1"
                      x:Name="richTextBox_Output"></RichTextBox>
+        <TextBox HorizontalAlignment="Left"
+                 Margin="348,130,0,0"
+                 TextWrapping="Wrap"
+                 Text="TextBox"
+                 VerticalAlignment="Top"
+                 Width="120"
+                 x:Name="textBox_DeviceIp" />
+        <TextBox HorizontalAlignment="Left"
+                 Margin="350,197,0,0"
+                 TextWrapping="Wrap"
+                 Text="TextBox"
+                 VerticalAlignment="Top"
+                 Width="120"
+                 x:Name="textbox_DevicePort" />
+        <Border BorderBrush="Black"
+                BorderThickness="1"
+                HorizontalAlignment="Left"
+                Height="216"
+                Margin="107,130,0,0"
+                VerticalAlignment="Top"
+                Width="208" />
+        <Label Content="IP"
+               HorizontalAlignment="Left"
+               Margin="360,99,0,0"
+               VerticalAlignment="Top" />
+        <Label Content="Port"
+               HorizontalAlignment="Left"
+               Margin="350,171,0,0"
+               VerticalAlignment="Top"
+               RenderTransformOrigin="0.06,1.822" />
+        <TextBox HorizontalAlignment="Left"
+                 Margin="350,252,0,0"
+                 TextWrapping="Wrap"
+                 Text="Undefined"
+                 VerticalAlignment="Top"
+                 Width="120"
+                 x:Name="textbox_DevicePairingCode" />
+        <Label Content="Pairing code;"
+               HorizontalAlignment="Left"
+               Margin="350,221,0,0"
+               VerticalAlignment="Top"
+               RenderTransformOrigin="0.06,1.822"
+               Height="26" />
     </Grid>
-    
+
 </Window>

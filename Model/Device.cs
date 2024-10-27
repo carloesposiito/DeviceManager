@@ -8,10 +8,10 @@ namespace GoogleBackupManager.Model
 {
     internal class Device
     {
-        private string _name = string.Empty;
-        private string _id = string.Empty;
+        private string _name;
+        private string _id;
         private bool _authorized;
-        private bool _hasUnlimitedBackup = false;
+        private bool _hasUnlimitedBackup;
 
         public Device(string name, string id, bool authStatus, bool hasUnlimitedBackup)
         {
