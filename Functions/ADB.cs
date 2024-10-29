@@ -231,7 +231,7 @@ namespace GoogleBackupManager.Functions
 
                 // Command to show popup
                 SendCommand("adb kill-server");
-                SendCommand("adb devices");
+                SendCommand("adb devices", 2500);
 
                 // Show message waiting for authorization
                 Utils.ShowMessageDialog(
@@ -242,7 +242,7 @@ namespace GoogleBackupManager.Functions
                 _output.Clear();
 
                 // Command to check device new auth status
-                SendCommand("adb devices");
+                SendCommand("adb devices", 7500);
 
                 // Output should contain only connected devices
                 if (_output.Any(str => str.Contains(deviceId) && str.Contains("device")))

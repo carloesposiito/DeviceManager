@@ -28,7 +28,7 @@
 
         <Border Background="Gray" />
 
-        <Label Content="Loading resources, please wait..."
+        <Label Content="Scanning devices, please wait..."
                FontSize="12"
                FontFamily="Open Sans Bold" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
