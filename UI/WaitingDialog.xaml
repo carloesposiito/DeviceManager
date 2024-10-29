@@ -1,4 +1,4 @@
-﻿<Window x:Class="GoogleBackupManager.UI.MessageDialog"
+﻿<Window x:Class="GoogleBackupManager.UI.WaitingDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         AllowsTransparency="True"
         Height="175"
+        Topmost="True"
         Width="275"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None">
@@ -22,30 +23,14 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="25" />
-            <RowDefinition Height="60*" />
-            <RowDefinition Height="40*" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Background="Gray"/>
+        <Border Background="Gray" />
 
-        <TextBlock FontFamily="Open Sans Bold"
-                   FontSize="12"
-                   Foreground="Black"
-                   Grid.Row="1"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Width="200"
-                   x:Name="textBlock_Message"
-                   TextWrapping="Wrap" />
-
-        <Button Click="button_Ok_Click"
-                Content="OK"
-                Grid.Row="2"
-                Height="30px"
-                Width="150px"
-                x:Name="button_Ok">
-
-        </Button>
+        <Label Content="Loading resources, please wait..."
+               FontSize="12"
+               FontFamily="Open Sans Bold" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
     </Grid>
 </Window>

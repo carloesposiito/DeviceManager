@@ -1,133 +1,387 @@
 ﻿using GoogleBackupManager.Model.Exceptions;
 using GoogleBackupManager.Functions;
 using GoogleBackupManager.Model;
-using GoogleBackupManager.UI;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using static System.Net.Mime.MediaTypeNames;
+using System.Net;
+using System.IO;
+using GoogleBackupManager.UI;
 
 namespace GoogleBackupManager
 {
-    /// <summary>
-    /// Logica di interazione per MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
+        #region "Variables"
+
+        private Window currentWindow;
+        private WaitingDialog waitingDialog;
+
+        /// <summary>
+        /// Describes if all devices are authorized.
+        /// </summary>
+        private bool initializeResult = false;
+
+        #endregion
+
         public MainWindow()
         {
             InitializeComponent();
 
+#if !DEBUG
+            tabItem_Development.Visibility = Visibility.Hidden;
+#endif
+
+            ScanDevices(true);
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                               FUNCTIONS                            //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
+
+        private void ScanDevices(bool initialize)
+        {
             try
             {
-                ADB.InitializeConnection();
+                waitingDialog = new WaitingDialog();
+                waitingDialog.Show();
 
-
-
-
-                RefreshConnectedDevices(true);
+                if (initialize)
+                {
+                    initializeResult = ADB.InitializeConnection();
+                    RefreshForm(false);
+                }
+                else
+                {
+                    initializeResult = ADB.ScanDevices();
+                    WriteToOutput("Please authorize your device to permit backup!", true, true, true);
+                    RefreshForm(false);
+                }
+                
+                waitingDialog.Close();
+            }
+            catch (PlatformToolsException ex)
+            {
+                // What to do when platform tools folder is not found
+                waitingDialog.Close();
+                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
+                Process.GetCurrentProcess().Kill();
+            }
+            catch (PlatformToolsTimeoutException ex)
+            {
+                // What to do when platform tools folder is not found
+                waitingDialog.Close();
+                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
+                Process.GetCurrentProcess().Kill();
+            }
+            catch (CommandPromptException ex)
+            {
+                // What to do when command prompt is not active anymore
+                waitingDialog.Close();
+                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
+                Process.GetCurrentProcess().Kill();
             }
             catch (NoDevicesException ex)
             {
-                MessageDialog messageDialog = new MessageDialog($"{ex.Message}\nTry to connect smartphone via WiFi");
-                messageDialog.ShowDialog();
+                // What to do when no devices are found
+                waitingDialog.Close();
+                initializeResult = false;
+                RefreshForm(false);
+                WriteToOutput(ex.Message, true, false, false);
             }
-            catch (DirectoryNotFoundException ex)
+            catch (DevicesCountException ex)
             {
-                MessageDialog messageDialog = new MessageDialog($"Error while initializing connection:\n{ex.Message}\nAborting program...");
-                messageDialog.ShowDialog();
-                Process.GetCurrentProcess().Kill();
+                // What to do when connected devices are less than two
+                waitingDialog.Close();
+                WriteToOutput($"{ex.Message}\nPlease connect another device to proceed.", true, true, true);
+                RefreshForm(false);
             }
-            finally
+            catch (Exception ex)
             {
-                RefreshConnectedDevices();
+                // What to do when there's a general error.
+                waitingDialog.Close();
+                RefreshForm(false);
+                WriteToOutput($"{ex.Message}\nPlease try again.", true, false, false);
             }
-
-            /* To do:
-             * 1. Save photos from new device. Only save photos that doesn't exist on pc.
-             * 
-             * 
-            */
-
-            
-            
-            //ADB.CheckDevicesAuthorization();
-
-
         }
 
-        private void RefreshConnectedDevices(bool clearOuput = false)
+        /// <summary>
+        /// Writes message to filtered output TextBlock.
+        /// </summary>
+        /// <param name="messageToWrite">Message to be written.</param>
+        /// <param name="clearPreviousOutput">[OPTIONAL] If true clear previous output.</param>
+        /// <param name="newLineAfterMessage">[OPTIONAL] If true put a new line after message.</param>
+        /// <param name="insertSeparator">[OPTIONAL] If true put a separator after message.</param>
+        private void WriteToOutput(string messageToWrite, bool clearPreviousOutput = false, bool newLineAfterMessage = false, bool insertSeparator = false)
         {
-            if (clearOuput)
+            if (clearPreviousOutput)
             {
-                richTextBox_Output.Document.Blocks.Clear();
+                textBlock_FilteredOutput.Text = string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(messageToWrite))
+            {
+                textBlock_FilteredOutput.Text += messageToWrite;
+            }
+
+            if (newLineAfterMessage)
+            {
+                textBlock_FilteredOutput.Text += "\n\n";
+            }
+
+            if (insertSeparator)
+            {
+                textBlock_FilteredOutput.Text += "-----------------------------------------------------------------------\n\n";
+            }
+        }
+
+        /// <summary>
+        /// Refresh form and devices.
+        /// </summary>
+        /// /// <param name="clearPreviousOutput">[OPTIONAL] If true clear previous output.</param>
+        private void RefreshForm(bool clearPreviousOutput = false)
+        {
+            WriteToOutput("Connected devices:", clearPreviousOutput, true, false);
+
+            foreach (Device device in ADB.ConnectedDevices)
+            {
+                if (device == ADB.ConnectedDevices.Last())
+                {
+                    WriteToOutput(device.ToString());
+                }
+                else
+                {
+                    WriteToOutput(device.ToString(), false, true);
+                }
+            }
+
+            WriteToOutput(string.Empty, false, true, true);
+
+            #region "Update form"
+
+            // Clear old combobox data
+            comboBox_BackupDevice.Items.Clear();
+            comboBox_ExtractDevice.Items.Clear();
+            comboBox_AuthDevices.Items.Clear();
+
+            switch (ADB.ConnectedDevices.Count)
+            {
+                case 0:
+                    grid_Backup.IsEnabled = false;
+                    comboBox_AuthDevices.IsEnabled = button_AuthorizeDevice.IsEnabled = false;
+                    tabControl_Program.SelectedIndex = 1;
+                    break;
+
+                default:
+                    grid_Backup.IsEnabled = true;
+                    button_StartBackup.IsEnabled = initializeResult;
+
+                    foreach (Device device in ADB.ConnectedDevices)
+                    {
+                        if (device.HasUnlimitedBackup && device.IsAuthorized)
+                        {
+                            if (device.Name.Equals(device.ID))
+                            {
+                                // Device without name so add it also in extract devices
+                                comboBox_ExtractDevice.Items.Add(device);
+                            }
+
+                            comboBox_BackupDevice.Items.Add(device);
+                            comboBox_BackupDevice.SelectedIndex = 0;
+                        }
+
+                        if (!device.HasUnlimitedBackup && device.IsAuthorized)
+                        {
+                            comboBox_ExtractDevice.Items.Add(device);
+                            comboBox_ExtractDevice.SelectedIndex = 0;
+                        }
+
+                        if (!device.IsAuthorized)
+                        {
+                            comboBox_AuthDevices.Items.Add(device);
+                            comboBox_AuthDevices.SelectedIndex = 0;
+                        }                        
+                    }
+
+                    comboBox_AuthDevices.IsEnabled = button_AuthorizeDevice.IsEnabled = comboBox_AuthDevices.Items.Count > 0;
+                    comboBox_BackupDevice.IsEnabled = comboBox_BackupDevice.Items.Count > 0;
+                    comboBox_ExtractDevice.IsEnabled = comboBox_ExtractDevice.Items.Count > 0;
+
+                    break;
+            }
+
+            #endregion
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                                EVENTS                              //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            currentWindow = Window.GetWindow(this);
+            currentWindow.Visibility = Visibility.Visible;
+        }
+
+        private void border_Upper_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            DragMove();
+        }
+
+        private void button_Close_Click(object sender, RoutedEventArgs e)
+        {
+            ADB.CloseConnection();
+            Close();
+        }
+
+        /// <summary>
+        /// Handles connecting or pairing operations.
+        /// </summary>
+        private void checkBox_Pairing_Click(object sender, RoutedEventArgs e)
+        {
+            if ((bool)checkBox_Pairing.IsChecked)
+            {
+                // Show pairing row
+                grid_Pairing.Visibility = Visibility.Visible;
+                button_ConnectPairDevice.Content = "Pair";
             }
             else
             {
-                richTextBox_Output.AppendText("\n");
+                // Hide pairing row
+                grid_Pairing.Visibility = Visibility.Collapsed;
+                button_ConnectPairDevice.Content = "Connect";
             }
-            
-            // Update UI
-            richTextBox_Output.AppendText("Connected devices:\n");
+        }
+
+        private void button_ConnectPairDevice_Click(object sender, RoutedEventArgs e)
+        {
+            // Check valid data
+            if (IPAddress.TryParse(textBox_DeviceIp.Text, out _) && int.TryParse(textbox_DevicePort.Text, out _))
+            {
+                bool result = false;
+
+                if ((bool)checkBox_Pairing.IsChecked)
+                {
+                    result = ADB.PairWirelessDevice(textBox_DeviceIp.Text, textbox_DevicePort.Text, textbox_DevicePairingCode.Text);
+                    if (result)
+                    {
+                        // Erase data in all TextBoxes
+                        textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                        checkBox_Pairing.IsChecked = false;
+                        Utils.ShowMessageDialog("Pairing succed! It's now possible to connect to device.");
+                    }
+                    else
+                    {
+                        textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                        Utils.ShowMessageDialog("Pairing failed! Check inserted data and try again.");
+                    }
+                }
+                else
+                {
+                    result = ADB.ConnectWirelessDevice(textBox_DeviceIp.Text, textbox_DevicePort.Text);
+                    if (result)
+                    {
+                        // Erase data in all TextBoxes
+                        textBox_DeviceIp.Text = textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                        ScanDevices(false);
+                    }
+                    else
+                    {
+                        // Erase only port and device pairing code
+                        textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                        Utils.ShowMessageDialog("Connection failed! Try to pair device first.");
+                    }
+                }
+            }
+            else
+            {
+                // Erase data in all TextBoxes
+                textBox_DeviceIp.Text = textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                Utils.ShowMessageDialog("Please check inserted IP and port!");
+            }
+        }
+
+        private void button_ScanDevices_Click(object sender, RoutedEventArgs e)
+        {
+            ScanDevices(false);
+        }
+
+        private void button_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
+        {
+            Device selectedDevice = comboBox_AuthDevices.SelectedItem as Device;
+            selectedDevice.IsAuthorized = ADB.AuthorizeDevice(selectedDevice.ID);
+            RefreshForm(true);         
+        }
+
+        /// <summary>
+        /// Handles backup operation.
+        /// </summary>
+        private void button_StartBackup_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                              DEVELOPMENT                           //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
+
+        private void button_ClearFilteredOutput_Click(object sender, RoutedEventArgs e)
+        {
+            textBlock_FilteredOutput.Text = string.Empty;
+        }
+
+        private void button_AddFakeDevice_Click(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+            Device fakeDevice = new Device();
+            fakeDevice.ID = random.Next(1234, 6544).ToString();
+            fakeDevice.IsWirelessConnected = true;
+
+            switch (random.Next(0, 4))
+            {
+                case 0:
+                    fakeDevice.Name = $"Pixel {random.Next(1, 5)}";
+                    fakeDevice.IsAuthorized = true;
+                    fakeDevice.HasUnlimitedBackup = true;
+                    break;
+                case 1:
+                    fakeDevice.Name = $"Pixel {random.Next(1, 5)}";
+                    fakeDevice.IsAuthorized = false;
+                    fakeDevice.HasUnlimitedBackup = true;
+                    break;
+                case 2:
+                    fakeDevice.Name = $"Redmi Note {random.Next(3, 15)}";
+                    fakeDevice.IsAuthorized = false;
+                    fakeDevice.HasUnlimitedBackup = false;
+                    break;
+                case 3:
+                    fakeDevice.Name = $"Redmi Note {random.Next(3, 15)}";
+                    fakeDevice.IsAuthorized = true;
+                    fakeDevice.HasUnlimitedBackup = false;
+                    break;
+            }
+
+            ADB.ConnectedDevices.Add(fakeDevice);
+
+            int authorizedDevicesCount = 0;
+            int unlimitedBackupDevicesCount = 0;
             foreach (Device device in ADB.ConnectedDevices)
             {
-                richTextBox_Output.AppendText($"{device.Name}, ID: {device.ID}, Status: {(device.IsAuthorized ? "Authorized" : "Not authorized")}, Unlimited backup: {(device.HasUnlimitedBackup ? "Yes" : "No")}\n");
+                authorizedDevicesCount = device.IsAuthorized ? authorizedDevicesCount + 1 : authorizedDevicesCount;
+                unlimitedBackupDevicesCount = device.HasUnlimitedBackup ? unlimitedBackupDevicesCount + 1 : unlimitedBackupDevicesCount;
             }
-        }
 
-
-
-
-        private void button_PairWiFiDevice_Click(object sender, RoutedEventArgs e)
-        {
-            //string deviceIp = textBox_DeviceIp.Text;
-            //string devicePort = textbox_DevicePort.Text;
-            //string devicePairingCode = textbox_DevicePairingCode.Text;
-
-            //// Check valid ip and port
-            //if (IPAddress.TryParse(deviceIp, out IPAddress parsedIpAddress) && int.TryParse(devicePort, out int parsedDevicePort))
-            //{
-            //    if (devicePairingCode.Equals("Undefined"))
-            //    {
-            //        if (!ADB.ConnectWirelessDevice(deviceIp, devicePort))
-            //        {
-            //            MessageDialog messageDialog = new MessageDialog("Connection failed!\nTry to pair device via pairing code.");
-            //            messageDialog.ShowDialog();
-            //        }
-            //    }
-            //    else
-            //    {
-            //        ADB.ConnectWirelessDevice(deviceIp, devicePort, devicePairingCode);
-            //    }
-
-            //    RefreshConnectedDevices();
-            //}
-            //else
-            //{
-            //    MessageDialog messageDialog = new MessageDialog("Check inserted ip and port addresses!");
-            //    messageDialog.ShowDialog();
-            //}            
-        }
-
-        private void button_RefreshDevices_Click(object sender, RoutedEventArgs e)
-        {
-            ADB.RefreshDevices();
-
-            RefreshConnectedDevices(true);
+            initializeResult = authorizedDevicesCount >= 2 && unlimitedBackupDevicesCount >= 1 ? true : false;
+            
+            RefreshForm(true);
         }
     }
 }
