@@ -16,9 +16,6 @@ namespace GoogleBackupManager
     {
         #region "Variables"
 
-        private Window currentWindow;
-        private WaitingDialog waitingDialog;
-
         /// <summary>
         /// Describes if all devices are authorized.
         /// </summary>
@@ -33,8 +30,9 @@ namespace GoogleBackupManager
 #if !DEBUG
             tabItem_Development.Visibility = Visibility.Hidden;
 #endif
-
-            ScanDevices(true);
+            ADB.InitializeConnection();
+            RefreshForm();
+            textBlock_FilteredOutput.Text = string.Empty;
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -43,21 +41,21 @@ namespace GoogleBackupManager
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
-        private void ScanDevices(bool initialize)
+        private void ScanDevices()
         {
+            WaitingDialog waitingDialog = new WaitingDialog();
+
             try
             {
-                waitingDialog = new WaitingDialog();
                 waitingDialog.Show();
+                initializeResult = ADB.ScanDevices();
 
-                if (initialize)
+                if (initializeResult)
                 {
-                    initializeResult = ADB.InitializeConnection();
                     RefreshForm(false);
                 }
                 else
                 {
-                    initializeResult = ADB.ScanDevices();
                     WriteToOutput("Please authorize your device to permit backup!", true, true, true);
                     RefreshForm(false);
                 }
@@ -75,8 +73,7 @@ namespace GoogleBackupManager
             {
                 // What to do when platform tools folder is not found
                 waitingDialog.Close();
-                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
-                Process.GetCurrentProcess().Kill();
+                Utils.ShowMessageDialog($"{ex.Message}\nPlease try again.");
             }
             catch (CommandPromptException ex)
             {
@@ -223,12 +220,6 @@ namespace GoogleBackupManager
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            currentWindow = Window.GetWindow(this);
-            currentWindow.Visibility = Visibility.Visible;
-        }
-
         private void border_Upper_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             DragMove();
@@ -289,7 +280,7 @@ namespace GoogleBackupManager
                     {
                         // Erase data in all TextBoxes
                         textBox_DeviceIp.Text = textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
-                        ScanDevices(false);
+                        ScanDevices();
                     }
                     else
                     {
@@ -309,7 +300,7 @@ namespace GoogleBackupManager
 
         private void button_ScanDevices_Click(object sender, RoutedEventArgs e)
         {
-            ScanDevices(false);
+            ScanDevices();
         }
 
         private void button_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
@@ -324,7 +315,9 @@ namespace GoogleBackupManager
         /// </summary>
         private void button_StartBackup_Click(object sender, RoutedEventArgs e)
         {
-
+            var extractDevice = comboBox_ExtractDevice.SelectedItem != null ? (Device)comboBox_ExtractDevice.SelectedItem : null;
+            var backupDevice = comboBox_BackupDevice.SelectedItem != null ? (Device)comboBox_BackupDevice.SelectedItem : null;
+            ADB.PerformBackup(extractDevice, backupDevice);
         }
 
         ////////////////////////////////////////////////////////////////////////

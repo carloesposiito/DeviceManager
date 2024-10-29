@@ -27,6 +27,9 @@ namespace GoogleBackupManager.Functions
         private static StringBuilder _rawOutput = new StringBuilder();
         private static List<string> _output = new List<string>();
 
+        private static bool _isCmdActive = false;
+        private static bool _isServerStarted = false;
+
         #endregion
 
         #region "Getters and setters"
@@ -46,18 +49,9 @@ namespace GoogleBackupManager.Functions
         ////////////////////////////////////////////////////////////////////////
 
         /// <summary>
-        /// Initializes ADB connection:
-        /// <list type="number">
-        /// <item>Checks PlatfromTools directory.</item>
-        /// <item>Starts ADB server.</item>
-        /// <item>Scans connected devices.<br/>
-        /// If a device is not authorized, tries to authorize it three times.
-        /// If a device is connected both via USB and wireless, keep only USB device.
-        /// </item> 
-        /// </list>
+        /// Initialized connection creating CMD process and ADB server.
         /// </summary>
-        /// <returns>True if all device are ready to work, otherwise false.</returns>
-        internal static bool InitializeConnection()
+        internal static void InitializeConnection()
         {
             #region "Check platform tools folder"
 
@@ -71,54 +65,8 @@ namespace GoogleBackupManager.Functions
 
             #endregion
 
-            #region "Configure process info"
-
-            _cmdProcess.StartInfo.CreateNoWindow = true;
-            _cmdProcess.StartInfo.FileName = "cmd.exe";
-            _cmdProcess.StartInfo.RedirectStandardInput = true;
-            _cmdProcess.StartInfo.RedirectStandardOutput = true;
-            _cmdProcess.StartInfo.RedirectStandardError = true;
-            _cmdProcess.StartInfo.UseShellExecute = false;
-            _cmdProcess.StartInfo.WorkingDirectory = _platformToolsDirectory;
-
-            // Add event to read received output data
-            // Exclude command sent by user
-            _cmdProcess.OutputDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(e.Data))
-                {
-                    if (!e.Data.Contains("adb "))
-                    {
-                        _output.Add(e.Data);
-                    }
-                    _rawOutput.AppendLine(e.Data);
-                }
-            };
-
-            // Add event to read received errors
-            _cmdProcess.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(e.Data))
-                {
-                    _rawOutput.AppendLine(e.Data);
-                }
-            };
-
-            // Start process
-            _cmdProcess.Start();
-            _cmdProcess.BeginOutputReadLine();
-            _cmdProcess.BeginErrorReadLine();
-
-            #endregion
-
-            #region "Preliminary operations"
-
-            SendCommand("adb start-server");
-            _output.Clear();
-
-            #endregion
-
-            return ScanDevices();
+            CreateProcess();
+            StartServer();
         }
 
         /// <summary>
@@ -131,9 +79,10 @@ namespace GoogleBackupManager.Functions
         {
             #region "Preliminary operations"
 
-            ConnectedDevices.Clear();
+            CreateProcess();
+            StartServer();
 
-            bool result = true;
+            ConnectedDevices.Clear();
 
             List<String> unlimitedBackupDeviceNames = new List<String>()
             {
@@ -145,8 +94,10 @@ namespace GoogleBackupManager.Functions
             };
 
             #endregion
-            
+
             SendCommand("adb devices", 7500);
+
+            string a = _rawOutput.ToString() + "\n";
 
             if (_output.Count() > 0)
             {
@@ -235,7 +186,7 @@ namespace GoogleBackupManager.Functions
                         _output.Clear();
                         ADB.ConnectedDevices.Clear();
                         throw ex;
-                    }                    
+                    }
                 }
 
                 // Check if connected devices are at least two
@@ -374,11 +325,93 @@ namespace GoogleBackupManager.Functions
             }
         }
 
+        /// <summary>
+        /// Performs backup operations.
+        /// </summary>
+        /// <param name="extractDevice">The device to make backup from.</param>
+        /// <param name="backupDevice">The device to make backup from.</param>
+        /// <returns>True if operation is successful, otherwise false.</returns>
+        internal static bool PerformBackup(Device extractDevice, Device backupDevice)
+        {
+            bool result = false;
+
+            CreateProgramFolders();
+
+            return result;
+        }
+
+        /// <summary>
+        /// Handles connection closing.
+        /// </summary>
+        internal static void CloseConnection()
+        {
+            SendCommand("adb kill-server");
+            _cmdProcess.Close();
+        }
+
         ////////////////////////////////////////////////////////////////////////
         //                                                                    //
         //                                COMMANDS                            //
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        /// Creates cmd process in PlatformTools folder.
+        /// </summary>
+        private static void CreateProcess()
+        {
+            if (!_isCmdActive)
+            {
+                _cmdProcess.StartInfo.CreateNoWindow = true;
+                _cmdProcess.StartInfo.FileName = "cmd.exe";
+                _cmdProcess.StartInfo.RedirectStandardInput = true;
+                _cmdProcess.StartInfo.RedirectStandardOutput = true;
+                _cmdProcess.StartInfo.RedirectStandardError = true;
+                _cmdProcess.StartInfo.UseShellExecute = false;
+                _cmdProcess.StartInfo.WorkingDirectory = _platformToolsDirectory;
+
+                // Add event to read received output data
+                // Exclude command sent by user
+                _cmdProcess.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        if (!e.Data.Contains("adb "))
+                        {
+                            _output.Add(e.Data);
+                        }
+                        _rawOutput.AppendLine(e.Data);
+                    }
+                };
+
+                // Add event to read received errors
+                _cmdProcess.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        _rawOutput.AppendLine(e.Data);
+                    }
+                };
+
+                // Start process
+                _cmdProcess.Start();
+                _cmdProcess.BeginOutputReadLine();
+                _cmdProcess.BeginErrorReadLine();
+
+                _isCmdActive = true;
+            }
+        }
+
+        /// <summary>
+        /// Starts ADB server;
+        /// </summary>
+        /// <exception cref="PlatformToolsException"></exception>
+        private static void StartServer()
+        {
+            SendCommand("adb start-server", 1500);
+            _isServerStarted = true;
+            _output.Clear();
+        }
 
         /// <summary>
         /// Executes command passed as parameter.<br/>
@@ -388,18 +421,21 @@ namespace GoogleBackupManager.Functions
         /// <exception cref="CommandPromptException">Thrown if command prompt process is not active anymore.</exception>
         private static void SendCommand(string command, int delay = 500)
         {
-            if (!_cmdProcess.HasExited)
+            if (_isCmdActive)
             {
-                // Write command
-                _cmdProcess.StandardInput.WriteLine(command);
-                _cmdProcess.StandardInput.Flush();
+                if (!_cmdProcess.HasExited)
+                {
+                    // Write command
+                    _cmdProcess.StandardInput.WriteLine(command);
+                    _cmdProcess.StandardInput.Flush();
 
-                // Wait for response
-                Task.Delay(delay).Wait();
-            }
-            else
-            {
-                throw new CommandPromptException("Command prompt process is not active anymore!");
+                    // Wait for response
+                    Task.Delay(delay).Wait();
+                }
+                else
+                {
+                    throw new CommandPromptException("Command prompt process is not active anymore!");
+                }
             }
         }
 
@@ -411,29 +447,26 @@ namespace GoogleBackupManager.Functions
         /// <exception cref="CommandPromptException">Thrown if command prompt process is not active anymore.</exception>
         private static void SendCommand(string command, string response)
         {
-            if (!_cmdProcess.HasExited)
+            if (_isCmdActive)
             {
-                // Write command
-                _cmdProcess.StandardInput.WriteLine(command);
-                _cmdProcess.StandardInput.Flush();
+                if (!_cmdProcess.HasExited)
+                {
+                    // Write command
+                    _cmdProcess.StandardInput.WriteLine(command);
+                    _cmdProcess.StandardInput.Flush();
 
-                // Write response
-                _cmdProcess.StandardInput.WriteLine(response);
-                _cmdProcess.StandardInput.Flush();
+                    // Write response
+                    _cmdProcess.StandardInput.WriteLine(response);
+                    _cmdProcess.StandardInput.Flush();
 
-                // Wait for response
-                Task.Delay(500).Wait();
+                    // Wait for response
+                    Task.Delay(500).Wait();
+                }
+                else
+                {
+                    throw new CommandPromptException("Command prompt process is not active anymore!");
+                }
             }
-            else
-            {
-                throw new CommandPromptException("Command prompt process is not active anymore!");
-            }
-        }
-
-        internal static void CloseConnection()
-        {
-            SendCommand("adb kill-server");
-            _cmdProcess.Close();
         }
 
         ////////////////////////////////////////////////////////////////////////
