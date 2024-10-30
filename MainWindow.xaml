@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:GoogleBackupManager"
         mc:Ignorable="d"
         AllowsTransparency="True"
-        Height="525"
+        Height="470"
         d:Visibility="Visible"
         Visibility="Collapsed"
         Width="700"
@@ -30,9 +30,8 @@
 
             <Border Background="Gray"
                     MouseLeftButtonDown="border_Upper_MouseLeftButtonDown">
-                <Button 
-                    Click="button_Close_Click"
-                    Height="20"
+                <Button Click="button_Close_Click"
+                        Height="20"
                         HorizontalAlignment="Right"
                         HorizontalContentAlignment="Center"
                         Margin="5,0"
@@ -44,224 +43,275 @@
                 </Button>
             </Border>
 
-            <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition />
-                    <ColumnDefinition />
-                </Grid.ColumnDefinitions>
+            <Border BorderBrush="Gray"
+                    BorderThickness="2"
+                    Grid.Row="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
 
-                <!--Program section-->
-                <TabControl Grid.Column="0"
-                            Style="{StaticResource tabControl_Common}"
-                            x:Name="tabControl_Program">
+                    <!--Program section-->
+                    <TabControl Grid.Column="0"
+                                Style="{StaticResource tabControl_Common}"
+                                x:Name="tabControl_Program">
 
-                    <!--Backup tab-->
-                    <TabItem Header="Backup"
-                             Style="{StaticResource tabItem_Common}">
-                        <Grid Style="{StaticResource grid_TabItemParent}" x:Name="grid_Backup">
-                            <GroupBox Header="Backup"
-                                      Style="{StaticResource groupBox_Common}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-
-                                    <Label Content="Extract from:"
-                                           Grid.Row="0"
-                                           Style="{StaticResource label_CommonItalic}" />
-
-                                    <ComboBox Grid.Row="1"
-                                              DisplayMemberPath="Name"
-                                              Style="{StaticResource comboBox_Common}"
-                                              x:Name="comboBox_ExtractDevice" />
-
-                                    <Label Content="Backup on:"
-                                           Grid.Row="2"
-                                           Style="{StaticResource label_CommonItalic}" />
-
-                                    <ComboBox Grid.Row="3"
-                                              DisplayMemberPath="Name"
-                                              Style="{StaticResource comboBox_Common}"
-                                              x:Name="comboBox_BackupDevice" />
-
-                                    <Button Click="button_StartBackup_Click"
-                                            Content="Start"
-                                            Grid.Row="4"
-                                            Margin="5,15,5,10"
-                                            Style="{StaticResource button_Common}"
-                                            x:Name="button_StartBackup" />
-                                </Grid>
-
-                            </GroupBox>
-                        </Grid>
-
-                    </TabItem>
-
-                    <!--Devices tab-->
-                    <TabItem Header="Devices"
-                             Style="{StaticResource tabItem_Common}">
-                        <Grid Style="{StaticResource grid_TabItemParent}">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <!--Scan row-->
-                            <GroupBox Header="Devices"
-                                      Style="{StaticResource groupBox_Common}">
-                                <Button Content="Scan"
-                                        Grid.Row="0"
-                                        Style="{StaticResource button_Common}"
-                                        Click="button_ScanDevices_Click" />
-                            </GroupBox>
-
-                            <!--Auth row-->
-                            <GroupBox Grid.Row="1"
-                                      Header="Authorization"
-                                      Style="{StaticResource groupBox_Common}">
+                        <!--Applications tab-->
+                        <!--<TabItem Header="Applications">
+                            <GroupBox Header="Backup and restore"
+                                      Style="{StaticResource groupBox_Common}"
+                                      VerticalAlignment="Top">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
                                     </Grid.ColumnDefinitions>
-
-                                    <ComboBox Style="{StaticResource comboBox_Common}"
-                                              DisplayMemberPath="Name"
-                                              Grid.Column="0"
-                                              x:Name="comboBox_AuthDevices" />
-
-                                    <Button Content="Authorize"
-                                            Grid.Column="1"
-                                            Style="{StaticResource button_Common}"
-                                            x:Name="button_AuthorizeDevice"
-                                            Click="button_AuthorizeDevice_Click" />
-                                </Grid>
-                            </GroupBox>
-
-                            <!--WiFi devices row-->
-                            <GroupBox Grid.Row="2"
-                                      Header="WiFi"
-                                      Style="{StaticResource groupBox_Common}">
-                                <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
                                     </Grid.RowDefinitions>
 
-                                    <Label Content="Device IP address:"
-                                           Grid.Row="0"
-                                           Style="{StaticResource label_CommonItalic}" />
+                                    <CheckBox Grid.Row="0"
+                                              Grid.Column="0"
+                                              Margin="5,10,5,5"
+                                              Style="{StaticResource checkBox_Backup}" />
 
-                                    <TextBox Grid.Row="1"
-                                             Style="{StaticResource textBox_Input}"
-                                             x:Name="textBox_DeviceIp" />
+                                    <CheckBox Grid.Row="0"
+                                              Grid.Column="1"
+                                              Margin="5,10,5,5"
+                                              Style="{StaticResource checkBox_Backup}" />
 
-                                    <Label Content="Device port:"
-                                           Grid.Row="2"
-                                           Style="{StaticResource label_CommonItalic}" />
+                                    <CheckBox Grid.Row="1"
+                                              Grid.Column="0"
+                                              Style="{StaticResource checkBox_Backup}" />
 
-                                    <TextBox Grid.Row="3"
-                                             Style="{StaticResource textBox_Input}"
-                                             x:Name="textbox_DevicePort" />
+                                    <CheckBox Grid.Row="1"
+                                              Grid.Column="1"
+                                              Style="{StaticResource checkBox_Backup}" />
 
-                                    <CheckBox Click="checkBox_Pairing_Click"
-                                              Content="Pair new device"
-                                              Grid.Row="4"
-                                              Style="{StaticResource checkBox_Common}"
-                                              x:Name="checkBox_Pairing" />
+                                    <CheckBox Grid.Row="2"
+                                              Grid.Column="0"
+                                              Style="{StaticResource checkBox_Backup}" />
 
-                                    <Grid Grid.Row="5"
-                                          Visibility="Collapsed"
-                                          x:Name="grid_Pairing">
+                                    <CheckBox Grid.Row="2"
+                                              Grid.Column="1"
+                                              Style="{StaticResource checkBox_Backup}" />
+
+                                    <CheckBox Grid.Row="3"
+                                              Grid.Column="0"
+                                              Style="{StaticResource checkBox_Backup}" />
+
+                                    <CheckBox Grid.Row="3"
+                                              Grid.Column="1"
+                                              Style="{StaticResource checkBox_Backup}" />
+
+                                </Grid>
+                            </GroupBox>
+                        </TabItem>-->
+
+                        <!--Backup tab-->
+                        <TabItem Header="Backup"
+                                 Style="{StaticResource tabItem_Common}"
+                                 x:Name="tabItem_UnlimitedBackup">
+                            <Grid Style="{StaticResource grid_TabItemParent}"
+                                  x:Name="grid_Backup">
+                                <GroupBox Header="Backup"
+                                          Style="{StaticResource groupBox_Common}">
+                                    <Grid>
                                         <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
-                                        <Label Content="Device pairing code:"
+                                        <Label Content="Extract from:"
+                                               Grid.Row="0"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <ComboBox Grid.Row="1"
+                                                  DisplayMemberPath="Name"
+                                                  Style="{StaticResource comboBox_Common}"
+                                                  x:Name="comboBox_ExtractDevice" />
+
+                                        <Label Content="Backup on:"
+                                               Grid.Row="2"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <ComboBox Grid.Row="3"
+                                                  DisplayMemberPath="Name"
+                                                  Style="{StaticResource comboBox_Common}"
+                                                  x:Name="comboBox_BackupDevice" />
+
+                                        <Button Click="button_StartBackup_Click"
+                                                Content="Start"
+                                                Grid.Row="4"
+                                                Margin="5,15,5,10"
+                                                Style="{StaticResource button_Common}"
+                                                x:Name="button_PerformBackup" />
+                                    </Grid>
+
+                                </GroupBox>
+                            </Grid>
+
+                        </TabItem>
+
+                        <!--Devices tab-->
+                        <TabItem Header="Devices"
+                                 Style="{StaticResource tabItem_Common}">
+                            <Grid Style="{StaticResource grid_TabItemParent}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!--Scan row-->
+                                <GroupBox Header="Devices"
+                                          Style="{StaticResource groupBox_Common}">
+                                    <Button Content="Scan"
+                                            Grid.Row="0"
+                                            Style="{StaticResource button_Common}"
+                                            Click="button_ScanDevices_Click" />
+                                </GroupBox>
+
+                                <!--Auth row-->
+                                <GroupBox Grid.Row="1"
+                                          Header="Authorization"
+                                          Style="{StaticResource groupBox_Common}"
+                                          x:Name="groupBox_Authorization">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ComboBox Style="{StaticResource comboBox_Common}"
+                                                  DisplayMemberPath="Name"
+                                                  Grid.Column="0"
+                                                  x:Name="comboBox_AuthDevices" />
+
+                                        <Button Content="Authorize"
+                                                Grid.Column="1"
+                                                Style="{StaticResource button_Common}"
+                                                x:Name="button_AuthorizeDevice"
+                                                Click="button_AuthorizeDevice_Click" />
+                                    </Grid>
+                                </GroupBox>
+
+                                <!--WiFi devices row-->
+                                <GroupBox Grid.Row="2"
+                                          Header="WiFi"
+                                          Style="{StaticResource groupBox_Common}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Label Content="Device IP address:"
                                                Grid.Row="0"
                                                Style="{StaticResource label_CommonItalic}" />
 
                                         <TextBox Grid.Row="1"
                                                  Style="{StaticResource textBox_Input}"
-                                                 x:Name="textbox_DevicePairingCode" />
+                                                 x:Name="textBox_DeviceIp" />
+
+                                        <Label Content="Device port:"
+                                               Grid.Row="2"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <TextBox Grid.Row="3"
+                                                 Style="{StaticResource textBox_Input}"
+                                                 x:Name="textbox_DevicePort" />
+
+                                        <CheckBox Click="checkBox_Pairing_Click"
+                                                  Content="Pair new device"
+                                                  Grid.Row="4"
+                                                  Style="{StaticResource checkBox_Common}"
+                                                  x:Name="checkBox_Pairing" />
+
+                                        <Grid Grid.Row="5"
+                                              Visibility="Collapsed"
+                                              x:Name="grid_Pairing">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <Label Content="Device pairing code:"
+                                                   Grid.Row="0"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <TextBox Grid.Row="1"
+                                                     Style="{StaticResource textBox_Input}"
+                                                     x:Name="textbox_DevicePairingCode" />
+                                        </Grid>
+
+
+                                        <!--Connect button-->
+                                        <Button Content="Connect"
+                                                Grid.Row="6"
+                                                Margin="5,15,5,10"
+                                                Style="{StaticResource button_Common}"
+                                                x:Name="button_ConnectPairDevice"
+                                                Click="button_ConnectPairDevice_Click" />
                                     </Grid>
+                                </GroupBox>
 
+                            </Grid>
+                        </TabItem>
 
-                                    <!--Connect button-->
-                                    <Button Content="Connect"
-                                            Grid.Row="6"
-                                            Margin="5,15,5,10"
-                                            Style="{StaticResource button_Common}"
-                                            x:Name="button_ConnectPairDevice"
-                                            Click="button_ConnectPairDevice_Click" />
-                                </Grid>
-                            </GroupBox>
-
-                        </Grid>
-                    </TabItem>
-
-                    <!--Settings tab-->
-                    <TabItem Header="Development"
-                             Style="{StaticResource tabItem_Common}"
-                             x:Name="tabItem_Development">
-                        <Grid Style="{StaticResource grid_TabItemParent}">
-                            <GroupBox Header="Output"
-                                      Style="{StaticResource groupBox_Common}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <Button Click="button_ClearFilteredOutput_Click" Content="Clear filtered output"
-                                            Grid.Row="1"
-                                            Margin="5,5,5,10"
-                                            Style="{StaticResource button_Common}" 
-                                            x:Name="button_ClearFilteredOutput"/>
+                        <!--Development tab-->
+                        <TabItem Header="Develop"
+                                 Style="{StaticResource tabItem_Common}"
+                                 Visibility="Collapsed"
+                                 x:Name="tabItem_Development">
+                            <Grid Style="{StaticResource grid_TabItemParent}">
+                                <GroupBox Header="Output"
+                                          Style="{StaticResource groupBox_Common}">
 
                                     <Button Click="button_AddFakeDevice_Click"
                                             Content="Add a fake device"
-                                            Grid.Row="2"
-                                            Margin="5,5,5,10"
+                                            Margin="5,10"
                                             Style="{StaticResource button_Common}"
                                             x:Name="button_AddFakeDevice" />
 
-                                </Grid>
-                            </GroupBox>
-                        </Grid>
-                    </TabItem>
+                                </GroupBox>
+                            </Grid>
+                        </TabItem>
 
-                </TabControl>
+                    </TabControl>
 
-                <!--Filtered output section-->
-                <Border BorderBrush="DimGray"
-                        BorderThickness="1"
-                        Grid.Column=" 1"
-                        Margin="10">
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Hidden">
-                        <TextBlock Background="Black"
-                                   FontFamily="Open Sans Semibold"
-                                   FontSize="12"
-                                   Foreground="White"
-                                   TextWrapping="Wrap"
-                                   Padding="10"
-                                   x:Name="textBlock_FilteredOutput" />
-                    </ScrollViewer>
-                </Border>
+                    <!--Filtered output section-->
+                    <Border BorderBrush="DimGray"
+                            BorderThickness="1"
+                            Grid.Column=" 1"
+                            Margin="10">
+                        <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden">
+                            <TextBlock Background="Black"
+                                       FontFamily="Open Sans Semibold"
+                                       FontSize="12"
+                                       Foreground="White"
+                                       TextWrapping="Wrap"
+                                       Padding="10"
+                                       Width="Auto"
+                                       x:Name="textBlock_FilteredOutput" />
+                        </ScrollViewer>
+                    </Border>
 
-            </Grid>
+                </Grid>
+            </Border>
 
         </Grid>
     </Grid>

@@ -28,9 +28,14 @@
 
         <Border Background="Gray" />
 
-        <Label Content="Scanning devices, please wait..."
-               FontSize="12"
-               FontFamily="Open Sans Bold" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Border BorderBrush="Gray" BorderThickness="2" Grid.Row="1">
+            <Label Content="Scanning devices, please wait..."
+                   FontSize="12"
+                   FontFamily="Open Sans Bold"
+                   Grid.Row="1"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+        </Border>
 
     </Grid>
 </Window>

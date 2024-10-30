@@ -22,30 +22,39 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="25" />
-            <RowDefinition Height="60*" />
-            <RowDefinition Height="40*" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <Border Background="Gray"/>
 
-        <TextBlock FontFamily="Open Sans Bold"
-                   FontSize="12"
-                   Foreground="Black"
-                   Grid.Row="1"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Width="200"
-                   x:Name="textBlock_Message"
-                   TextWrapping="Wrap" />
+        <Border BorderBrush="Gray" BorderThickness="2" Grid.Row="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="60*" />
+                    <RowDefinition Height="40*" />
+                </Grid.RowDefinitions>
 
-        <Button Click="button_Ok_Click"
-                Content="OK"
-                Grid.Row="2"
-                Height="30px"
-                Width="150px"
-                x:Name="button_Ok">
+                <TextBlock FontFamily="Open Sans Bold"
+                           FontSize="12"
+                           Foreground="Black"
+                           Grid.Row="0"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Width="200"
+                           x:Name="textBlock_Message"
+                           TextWrapping="Wrap" />
 
-        </Button>
+                <Button Click="button_Ok_Click"
+                        Content="OK"
+                        Grid.Row="1"
+                        Height="30px"
+                        Width="150px"
+                        x:Name="button_Ok">
 
+                </Button>
+
+            </Grid>
+        </Border>
+        
     </Grid>
 </Window>

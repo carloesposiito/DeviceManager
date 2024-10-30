@@ -3,11 +3,9 @@ using GoogleBackupManager.Functions;
 using GoogleBackupManager.Model;
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Net;
-using System.IO;
 using GoogleBackupManager.UI;
 
 namespace GoogleBackupManager
@@ -17,9 +15,9 @@ namespace GoogleBackupManager
         #region "Variables"
 
         /// <summary>
-        /// Describes if all devices are authorized.
+        /// Describes if program is ready to perform a backup.
         /// </summary>
-        private bool initializeResult = false;
+        private bool _isProgramReady = false;
 
         #endregion
 
@@ -27,11 +25,14 @@ namespace GoogleBackupManager
         {
             InitializeComponent();
 
-#if !DEBUG
-            tabItem_Development.Visibility = Visibility.Hidden;
-#endif
             ADB.InitializeConnection();
             RefreshForm();
+
+#if DEBUG
+            tabItem_Development.Visibility = Visibility.Visible;
+#endif
+
+            // Because scan is not done yet, clear output
             textBlock_FilteredOutput.Text = string.Empty;
         }
 
@@ -43,14 +44,15 @@ namespace GoogleBackupManager
 
         private void ScanDevices()
         {
+            // Show waiting dialog
             WaitingDialog waitingDialog = new WaitingDialog();
+            waitingDialog.Show();
 
             try
             {
-                waitingDialog.Show();
-                initializeResult = ADB.ScanDevices();
+                _isProgramReady = ADB.ScanDevices();
 
-                if (initializeResult)
+                if (_isProgramReady)
                 {
                     RefreshForm(false);
                 }
@@ -81,21 +83,6 @@ namespace GoogleBackupManager
                 waitingDialog.Close();
                 Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
                 Process.GetCurrentProcess().Kill();
-            }
-            catch (NoDevicesException ex)
-            {
-                // What to do when no devices are found
-                waitingDialog.Close();
-                initializeResult = false;
-                RefreshForm(false);
-                WriteToOutput(ex.Message, true, false, false);
-            }
-            catch (DevicesCountException ex)
-            {
-                // What to do when connected devices are less than two
-                waitingDialog.Close();
-                WriteToOutput($"{ex.Message}\nPlease connect another device to proceed.", true, true, true);
-                RefreshForm(false);
             }
             catch (Exception ex)
             {
@@ -132,86 +119,119 @@ namespace GoogleBackupManager
 
             if (insertSeparator)
             {
-                textBlock_FilteredOutput.Text += "-----------------------------------------------------------------------\n\n";
+                textBlock_FilteredOutput.Text += "------------------------------------------------------------\n\n";
             }
         }
 
         /// <summary>
-        /// Refresh form and devices.
+        /// Refreshes form and devices in filtered output.
         /// </summary>
-        /// /// <param name="clearPreviousOutput">[OPTIONAL] If true clear previous output.</param>
         private void RefreshForm(bool clearPreviousOutput = false)
         {
-            WriteToOutput("Connected devices:", clearPreviousOutput, true, false);
-
-            foreach (Device device in ADB.ConnectedDevices)
-            {
-                if (device == ADB.ConnectedDevices.Last())
-                {
-                    WriteToOutput(device.ToString());
-                }
-                else
-                {
-                    WriteToOutput(device.ToString(), false, true);
-                }
-            }
-
-            WriteToOutput(string.Empty, false, true, true);
-
-            #region "Update form"
+            #region "Reset form"
 
             // Clear old combobox data
             comboBox_BackupDevice.Items.Clear();
             comboBox_ExtractDevice.Items.Clear();
             comboBox_AuthDevices.Items.Clear();
 
-            switch (ADB.ConnectedDevices.Count)
+            // Disable everything, leave only the possibility to scan devices again
+            // Disable backup tab and put devices one as active
+            tabItem_UnlimitedBackup.IsEnabled = false;
+            tabControl_Program.SelectedIndex = 1;
+
+            // Disable authorization GroupBox
+            groupBox_Authorization.IsEnabled = false;
+
+            #endregion
+
+            int connectedDevicesCount = ADB.ConnectedDevices.Count;
+
+            if (connectedDevicesCount > 0)
             {
-                case 0:
-                    grid_Backup.IsEnabled = false;
-                    comboBox_AuthDevices.IsEnabled = button_AuthorizeDevice.IsEnabled = false;
-                    tabControl_Program.SelectedIndex = 1;
-                    break;
+                #region "Refresh form"
 
-                default:
-                    grid_Backup.IsEnabled = true;
-                    button_StartBackup.IsEnabled = initializeResult;
+                // Enable backup tab
+                tabItem_UnlimitedBackup.IsEnabled = true;
 
-                    foreach (Device device in ADB.ConnectedDevices)
+                // Enable backup button in backup tab only if program is ready to work
+                if (connectedDevicesCount.Equals(1))
+                {
+                    WriteToOutput("Only one device connected!\nPlease connect another device to continue.", true, true, true);
+                }
+
+                #region "Put elements in right ComboBoxes"
+
+                foreach (Device device in ADB.ConnectedDevices)
+                {
+                    if (!device.IsAuthorized)
                     {
-                        if (device.HasUnlimitedBackup && device.IsAuthorized)
-                        {
-                            if (device.Name.Equals(device.ID))
-                            {
-                                // Device without name so add it also in extract devices
-                                comboBox_ExtractDevice.Items.Add(device);
-                            }
+                        comboBox_AuthDevices.Items.Add(device);
+                        comboBox_AuthDevices.SelectedIndex = 0;
+                        continue;
+                    }
 
-                            comboBox_BackupDevice.Items.Add(device);
-                            comboBox_BackupDevice.SelectedIndex = 0;
-                        }
-
-                        if (!device.HasUnlimitedBackup && device.IsAuthorized)
+                    if (device.HasUnlimitedBackup)
+                    {
+                        // Device has no name so it's property about unlimited backup is not valid
+                        // So I add it also in extract device ComboBox
+                        if (device.Name.Contains("Undefined"))
                         {
                             comboBox_ExtractDevice.Items.Add(device);
                             comboBox_ExtractDevice.SelectedIndex = 0;
                         }
 
-                        if (!device.IsAuthorized)
-                        {
-                            comboBox_AuthDevices.Items.Add(device);
-                            comboBox_AuthDevices.SelectedIndex = 0;
-                        }                        
+                        comboBox_BackupDevice.Items.Add(device);
+                        comboBox_BackupDevice.SelectedIndex = 0;
                     }
+                    else
+                    {
+                        comboBox_ExtractDevice.Items.Add(device);
+                        comboBox_ExtractDevice.SelectedIndex = 0;
+                    }
+                }
 
-                    comboBox_AuthDevices.IsEnabled = button_AuthorizeDevice.IsEnabled = comboBox_AuthDevices.Items.Count > 0;
-                    comboBox_BackupDevice.IsEnabled = comboBox_BackupDevice.Items.Count > 0;
-                    comboBox_ExtractDevice.IsEnabled = comboBox_ExtractDevice.Items.Count > 0;
+                #endregion
 
-                    break;
+                #region "Enable/disable ComboBoxes"
+
+                // Enable authorization group only if a device needs to be authorized
+                groupBox_Authorization.IsEnabled = comboBox_AuthDevices.Items.Count > 0;
+
+                // Enable extract device ComboBox only there's at least one device
+                comboBox_ExtractDevice.IsEnabled = comboBox_ExtractDevice.Items.Count > 0;
+
+                // Enable backup device ComboBox only there's at least one device
+                comboBox_BackupDevice.IsEnabled = comboBox_BackupDevice.Items.Count > 0;
+
+                // Enable backup button only if there are enough devices.
+                if (comboBox_ExtractDevice.IsEnabled && comboBox_BackupDevice.IsEnabled)
+                {
+                    button_PerformBackup.IsEnabled = true;
+                    tabControl_Program.SelectedIndex = 0;
+                }
+                else
+                {
+                    button_PerformBackup.IsEnabled = false;
+                }
+
+                #endregion
+
+                #endregion
+
+                WriteToOutput("Connected devices:", clearPreviousOutput, true, false);
+
+                foreach (Device device in ADB.ConnectedDevices)
+                {
+                    WriteToOutput(device.ToString(), false, true, false);
+                }
+
+                WriteToOutput(string.Empty, false, false, true);
             }
-
-            #endregion
+            else
+            {
+                WriteToOutput("No devices connected!\nScan devices again to continue.", true, false, false);
+            }
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -326,11 +346,6 @@ namespace GoogleBackupManager
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
-        private void button_ClearFilteredOutput_Click(object sender, RoutedEventArgs e)
-        {
-            textBlock_FilteredOutput.Text = string.Empty;
-        }
-
         private void button_AddFakeDevice_Click(object sender, RoutedEventArgs e)
         {
             var random = new Random();
@@ -363,16 +378,6 @@ namespace GoogleBackupManager
             }
 
             ADB.ConnectedDevices.Add(fakeDevice);
-
-            int authorizedDevicesCount = 0;
-            int unlimitedBackupDevicesCount = 0;
-            foreach (Device device in ADB.ConnectedDevices)
-            {
-                authorizedDevicesCount = device.IsAuthorized ? authorizedDevicesCount + 1 : authorizedDevicesCount;
-                unlimitedBackupDevicesCount = device.HasUnlimitedBackup ? unlimitedBackupDevicesCount + 1 : unlimitedBackupDevicesCount;
-            }
-
-            initializeResult = authorizedDevicesCount >= 2 && unlimitedBackupDevicesCount >= 1 ? true : false;
             
             RefreshForm(true);
         }

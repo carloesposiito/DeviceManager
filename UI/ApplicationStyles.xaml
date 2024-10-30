@@ -21,7 +21,14 @@
         <Setter Property="Margin"
                 Value="5,15,5,5" />
     </Style>
-    
+
+    <!--Checkbox-->
+    <Style x:Key="checkBox_Backup"
+           TargetType="{x:Type CheckBox}">
+        <Setter Property="Margin"
+                Value="5" />
+    </Style>
+
     <!--ComboBox-->
     <Style x:Key="comboBox_Common"
            TargetType="{x:Type ComboBox}">
