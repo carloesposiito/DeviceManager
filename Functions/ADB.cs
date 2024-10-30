@@ -7,6 +7,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Xml.Linq;
+using System.Runtime.Remoting.Channels;
+using System.Threading;
+using System.Timers;
+using static GoogleBackupManager.Functions.Utils;
+using GoogleBackupManager.UI;
 
 namespace GoogleBackupManager.Functions
 {
@@ -117,7 +123,7 @@ namespace GoogleBackupManager.Functions
 
                             // Set default unlimited backup status
                             bool deviceHasUnlimitedBackup = false;
-                            
+
                             // If device is authorized it's possible to get real device name
                             if (deviceAuthorizationStatus)
                             {
@@ -154,7 +160,7 @@ namespace GoogleBackupManager.Functions
                     catch (Exception ex)
                     {
                         // If something goes wrong
-                        
+
                         // Clear previous output
                         _filteredOutput.Clear();
 
@@ -324,7 +330,46 @@ namespace GoogleBackupManager.Functions
         {
             try
             {
-                return true;
+                // Clear previous output
+                _filteredOutput.Clear();
+
+                if (_isCommandPromptInitialized)
+                {
+                    if (!_commandPromptProcess.HasExited)
+                    {
+                        WaitingDialog waitingDialog = new WaitingDialog("Transferring files, please wait...");
+                        waitingDialog.Show();
+
+                        string commandString = $"for %%i in (%{filesToTransferPath}%) do adb -s {destinationDevice.ID} push %%i /storage/emulated/0/Documents/";
+
+                        // Write command
+                        _commandPromptProcess.StandardInput.WriteLine(commandString);
+                        _commandPromptProcess.StandardInput.Flush();
+
+                        // Wait for response
+                        Task.Delay((int)Utils.WAITING_TIME.DEFAULT).Wait();
+
+                        // Loop checks percentage in output
+                        // Building file list means wait
+                        // [%] != 99 or 100 means still in progress
+                        while (_filteredOutput.Contains("Building") || !_filteredOutput.Contains("[98") || !_filteredOutput.Contains("[99") || !_filteredOutput.Contains("[100"))
+                        {
+                            
+                        }
+
+                        waitingDialog.Close();
+
+                        return true;
+                    }
+                    else
+                    {
+                        throw new CommandPromptException("Command prompt process is not active anymore!");
+                    }
+                }
+                else
+                {
+                    return false;
+                }
             }
             catch (Exception)
             {

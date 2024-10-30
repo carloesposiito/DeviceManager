@@ -19,9 +19,10 @@ namespace GoogleBackupManager.UI
     /// </summary>
     public partial class WaitingDialog : Window
     {
-        public WaitingDialog()
+        public WaitingDialog(string message)
         {
             InitializeComponent();
+            label_Message.Content = message;
         }
     }
 }

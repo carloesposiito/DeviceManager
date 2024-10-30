@@ -52,7 +52,7 @@ namespace GoogleBackupManager
         private void ScanDevices()
         {
             // Show waiting dialog
-            WaitingDialog waitingDialog = new WaitingDialog();
+            WaitingDialog waitingDialog = new WaitingDialog("Scanning devices, please wait...");
             waitingDialog.Show();
 
             try
@@ -432,7 +432,7 @@ namespace GoogleBackupManager
                 if (Directory.GetFiles(selectedDir).Count() > 0 || Directory.GetDirectories(selectedDir).Count() > 0)
                 {
                     Device destinationDevice = comboBox_TransferFilesDevice.SelectedItem as Device;
-                    if (ADB.TransferFiles(destinationDevice, selectedDir))
+                    if (ADB.TransferFiles(destinationDevice, $"{selectedDir}\\"))
                     {
 
                     }
