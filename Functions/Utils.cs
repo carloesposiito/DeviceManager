@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace GoogleBackupManager.Functions
 {
@@ -60,6 +61,29 @@ namespace GoogleBackupManager.Functions
             MessageDialog messageDialog = new MessageDialog(message);
             messageDialog.Topmost = true;
             messageDialog.ShowDialog();
+        }
+
+        /// <summary>
+        /// Open a folder browser dialog to pick a folder.
+        /// </summary>
+        /// <returns>Selected folder path.</returns>
+        internal static string SelectFolder()
+        {
+            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
+            using (var dialog = new FolderBrowserDialog())
+            {
+                dialog.Description = "Select files folder";
+                dialog.ShowNewFolderButton = false;
+
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    return dialog.SelectedPath;
+                }
+                else
+                {
+                    return null;
+                }
+            }
         }
 
         /// <summary>

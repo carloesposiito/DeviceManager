@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace GoogleBackupManager.Functions
 {
@@ -313,6 +314,22 @@ namespace GoogleBackupManager.Functions
             CreateProgramFolders();
 
             return result;
+        }
+
+        /// <summary>
+        /// Transfer files from folder to device according to passed parameters.
+        /// </summary>
+        /// <returns>True if operation is done, otherwise false.</returns>
+        internal static bool TransferFiles(Device destinationDevice, string filesToTransferPath)
+        {
+            try
+            {
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>

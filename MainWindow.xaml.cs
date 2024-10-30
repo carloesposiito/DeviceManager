@@ -8,6 +8,10 @@ using System.Windows.Input;
 using System.Net;
 using GoogleBackupManager.UI;
 using System.Linq;
+using System.Windows.Controls;
+using System.Windows.Forms;
+using CheckBox = System.Windows.Controls.CheckBox;
+using System.IO;
 
 namespace GoogleBackupManager
 {
@@ -42,6 +46,8 @@ namespace GoogleBackupManager
         //                               FUNCTIONS                            //
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
+
+        #region "Functions"
 
         private void ScanDevices()
         {
@@ -251,11 +257,15 @@ namespace GoogleBackupManager
             }
         }
 
+        #endregion
+
         ////////////////////////////////////////////////////////////////////////
         //                                                                    //
         //                                EVENTS                              //
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
+
+        #region "Events"
 
         private void border_Upper_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -266,6 +276,24 @@ namespace GoogleBackupManager
         {
             ADB.CloseConnection();
             Close();
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                              DEVICES TAB                           //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
+
+        private void button_ScanDevices_Click(object sender, RoutedEventArgs e)
+        {
+            ScanDevices();
+        }
+
+        private void button_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
+        {
+            Device selectedDevice = comboBox_AuthDevices.SelectedItem as Device;
+            selectedDevice.IsAuthorized = ADB.AuthorizeDevice(selectedDevice.ID);
+            RefreshForm(true);
         }
 
         /// <summary>
@@ -335,25 +363,108 @@ namespace GoogleBackupManager
             }
         }
 
-        private void button_ScanDevices_Click(object sender, RoutedEventArgs e)
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                                 APPS TAB                           //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
+
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                                FILES TAB                           //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
+
+        private void checkBox_WhatsAppAll_Click(object sender, RoutedEventArgs e)
         {
-            ScanDevices();
+            if ((bool)checkBox_WhatsAppAll.IsChecked)
+            {
+                // Check also other WhatsApp checkboxes
+                checkBox_WhatsApp_Backups.IsChecked = checkBox_WhatsApp_Database.IsChecked = checkBox_WhatsApp_Media.IsChecked = true;
+            }
+            else
+            {
+                checkBox_WhatsApp_Backups.IsChecked = checkBox_WhatsApp_Database.IsChecked = checkBox_WhatsApp_Media.IsChecked = false;
+            }
         }
 
-        private void button_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
+        private void checkBox_Everything_Click(object sender, RoutedEventArgs e)
         {
-            Device selectedDevice = comboBox_AuthDevices.SelectedItem as Device;
-            selectedDevice.IsAuthorized = ADB.AuthorizeDevice(selectedDevice.ID);
-            RefreshForm(true);
+            if ((bool)checkBox_Everything.IsChecked)
+            {
+                // Check all checkboxes
+                foreach (var item in grid_ExtractCheckBoxes.Children)
+                {
+                    var itemType = item.GetType();
+                    if (itemType.Name.Equals("CheckBox"))
+                    {
+                        CheckBox tempItem = item as CheckBox;
+                        tempItem.IsChecked = true;
+                    }
+                }
+            }
+            else
+            {
+                // Uncheck all checkboxes
+                foreach (var item in grid_ExtractCheckBoxes.Children)
+                {
+                    var itemType = item.GetType();
+                    if (itemType.Name.Equals("CheckBox"))
+                    {
+                        CheckBox tempItem = item as CheckBox;
+                        tempItem.IsChecked = false;
+                    }
+                }
+            }
         }
+
+        private void button_SelectTransferFileFolder(object sender, RoutedEventArgs e)
+        {
+            textBox_FilesToTransferPath.Text = Utils.SelectFolder();
+        }
+
+        private void button_TransferFiles_Click(object sender, RoutedEventArgs e)
+        {
+            string selectedDir = textBox_FilesToTransferPath.Text;
+
+            if (Directory.Exists(selectedDir))
+            {
+                if (Directory.GetFiles(selectedDir).Count() > 0 || Directory.GetDirectories(selectedDir).Count() > 0)
+                {
+                    Device destinationDevice = comboBox_TransferFilesDevice.SelectedItem as Device;
+                    if (ADB.TransferFiles(destinationDevice, selectedDir))
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+                else
+                {
+                    Utils.ShowMessageDialog("Selected folder is empty!");
+                }
+            }
+            else
+            {
+                Utils.ShowMessageDialog("Please check selected folder!");
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                           UNLIMITED BACKUP TAB                     //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
 
         /// <summary>
         /// Handles backup operation.
         /// </summary>
         private void button_StartBackup_Click(object sender, RoutedEventArgs e)
         {
-            var extractDevice = comboBox_ExtractDevice.SelectedItem != null ? (Device)comboBox_ExtractDevice.SelectedItem : null;
-            var backupDevice = comboBox_BackupDevice.SelectedItem != null ? (Device)comboBox_BackupDevice.SelectedItem : null;
+            var extractDevice = comboBox_ExtractDevice.SelectedItem as Device;
+            var backupDevice = comboBox_BackupDevice.SelectedItem as Device;
             ADB.PerformBackup(extractDevice, backupDevice);
         }
 
@@ -399,27 +510,17 @@ namespace GoogleBackupManager
             RefreshForm(true);
         }
 
-        private void button_StartScreenCopy_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
         private void button_ShowRawOutput_Click(object sender, RoutedEventArgs e)
         {
 
         }
 
-        private void checkBox_WhatsAppAll_Click(object sender, RoutedEventArgs e)
+        private void button_StartScreenCopy_Click(object sender, RoutedEventArgs e)
         {
-            if ((bool)checkBox_WhatsAppAll.IsChecked)
-            {
-                // Check also other WhatsApp checkboxes
-                checkBox_WhatsApp_Backups.IsChecked = checkBox_WhatsApp_Database.IsChecked = checkBox_WhatsApp_Media.IsChecked = true;
-            }
-            else
-            {
-                checkBox_WhatsApp_Backups.IsChecked = checkBox_WhatsApp_Database.IsChecked = checkBox_WhatsApp_Media.IsChecked = false;
-            }
+
         }
+
+        #endregion
+
     }
 }

@@ -310,7 +310,8 @@
                                                       Style="{StaticResource comboBox_Common}"
                                                       x:Name="comboBox_SelectFilesDevice" />
 
-                                            <Grid Grid.Row="2">
+                                            <Grid Grid.Row="2"
+                                                  x:Name="grid_ExtractCheckBoxes">
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition />
                                                     <RowDefinition />
@@ -391,10 +392,12 @@
                                                           Style="{StaticResource checkBox_ExtractRestoreFiles}"
                                                           x:Name="checkBox_WhatsAppAll" />
 
-                                                <CheckBox Content="Everything"
+                                                <CheckBox Click="checkBox_Everything_Click"
+                                                          Content="Everything"
                                                           Grid.Column="1"
                                                           Grid.Row="5"
-                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}"
+                                                          x:Name="checkBox_Everything" />
 
                                             </Grid>
 
@@ -438,14 +441,27 @@
                                                    Grid.Row="2"
                                                    Style="{StaticResource label_CommonItalic}" />
 
-                                            <TextBox Grid.Row="3"
-                                                     Style="{StaticResource textBox_Input}"
-                                                     x:Name="textBox_FilesToTransferPath" />
+                                            <Grid Grid.Row="3">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="70*" />
+                                                    <ColumnDefinition Width="30*" />
+                                                </Grid.ColumnDefinitions>
 
-                                            <Button Content="Transfer"
+                                                <TextBox Grid.Column="0"
+                                                         Style="{StaticResource textBox_Input}"
+                                                         x:Name="textBox_FilesToTransferPath" />
+
+                                                <Button Click="button_SelectTransferFileFolder" Content="Select"
+                                                        Grid.Column="1"
+                                                        Style="{StaticResource button_Common}" />
+
+                                            </Grid>
+
+                                            <Button Click="button_TransferFiles_Click"
+                                                    Content="Transfer"
                                                     Grid.Row="4"
-                                                    Margin="5,15,5,10"
-                                                    Style="{StaticResource button_Common}" />
+                                                    Style="{StaticResource button_Common}"
+                                                    x:Name="button_TransferFiles" />
 
                                         </Grid>
                                     </GroupBox>
