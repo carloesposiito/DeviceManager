@@ -48,8 +48,8 @@
                     Grid.Row="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition />
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <!--Program section-->
@@ -305,7 +305,7 @@
                                        Foreground="White"
                                        TextWrapping="Wrap"
                                        Padding="10"
-                                       Width="Auto"
+                                       Width="350"
                                        x:Name="textBlock_FilteredOutput" />
                         </ScrollViewer>
                     </Border>
