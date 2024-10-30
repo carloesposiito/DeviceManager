@@ -23,7 +23,7 @@
     </Style>
 
     <!--Checkbox-->
-    <Style x:Key="checkBox_Backup"
+    <Style x:Key="checkBox_ExtractRestoreFiles"
            TargetType="{x:Type CheckBox}">
         <Setter Property="Margin"
                 Value="5" />
@@ -107,7 +107,7 @@
         <Setter Property="FontStyle"
                 Value="Italic" />
         <Setter Property="Margin"
-                Value="5" />
+                Value="5,10,5,5" />
         <Setter Property="Padding"
                 Value="0" />
         <Setter Property="VerticalAlignment"

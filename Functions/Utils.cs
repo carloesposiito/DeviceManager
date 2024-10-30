@@ -79,7 +79,14 @@ namespace GoogleBackupManager.Functions
                 // If platform tools folder exists delete it and create a new one
                 if (Directory.Exists(ProgramFolders.PlatformToolsDirectory))
                 {
-                    Directory.Delete(ProgramFolders.PlatformToolsDirectory, true);    
+                    try
+                    {
+                        Directory.Delete(ProgramFolders.PlatformToolsDirectory, true);
+                    }
+                    catch (Exception)
+                    {
+                        throw new PlatformToolsException("And old ADB process is still running!\nPlease close it manually or restart computer.");
+                    }     
                 }
 
                 Directory.CreateDirectory(ProgramFolders.PlatformToolsDirectory);

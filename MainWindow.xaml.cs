@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Net;
 using GoogleBackupManager.UI;
+using System.Linq;
 
 namespace GoogleBackupManager
 {
@@ -29,7 +30,7 @@ namespace GoogleBackupManager
             RefreshForm();
 
 #if DEBUG
-            tabItem_Development.Visibility = Visibility.Visible;
+            button_AddFakeDevice.Visibility = Visibility.Visible;
 #endif
 
             // Because scan is not done yet, clear output
@@ -61,7 +62,7 @@ namespace GoogleBackupManager
                     WriteToOutput("Please authorize your device to permit backup!", true, true, true);
                     RefreshForm(false);
                 }
-                
+
                 waitingDialog.Close();
             }
             catch (PlatformToolsException ex)
@@ -134,14 +135,16 @@ namespace GoogleBackupManager
             comboBox_BackupDevice.Items.Clear();
             comboBox_ExtractDevice.Items.Clear();
             comboBox_AuthDevices.Items.Clear();
+            comboBox_SelectAppsDevice.Items.Clear();
+            comboBox_SelectFilesDevice.Items.Clear();
+            comboBox_ScrcpyDevice.Items.Clear();
+            comboBox_TransferFilesDevice.Items.Clear();
 
-            // Disable everything, leave only the possibility to scan devices again
-            // Disable backup tab and put devices one as active
-            tabItem_UnlimitedBackup.IsEnabled = false;
-            tabControl_Program.SelectedIndex = 1;
+            // Disable unlimited backup, apps and files tabs
+            tabItem_UnlimitedBackup.IsEnabled = tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = false;
 
-            // Disable authorization GroupBox
-            groupBox_Authorization.IsEnabled = false;
+            // Disable scrcpy and authorization groups
+            groupBox_Authorization.IsEnabled = groupBox_ScreenCopy.IsEnabled = false;
 
             #endregion
 
@@ -149,18 +152,9 @@ namespace GoogleBackupManager
 
             if (connectedDevicesCount > 0)
             {
-                #region "Refresh form"
+                #region "Refresh form"               
 
-                // Enable backup tab
-                tabItem_UnlimitedBackup.IsEnabled = true;
-
-                // Enable backup button in backup tab only if program is ready to work
-                if (connectedDevicesCount.Equals(1))
-                {
-                    WriteToOutput("Only one device connected!\nPlease connect another device to continue.", true, true, true);
-                }
-
-                #region "Put elements in right ComboBoxes"
+                #region "Put elements in right combos"
 
                 foreach (Device device in ADB.ConnectedDevices)
                 {
@@ -169,6 +163,23 @@ namespace GoogleBackupManager
                         comboBox_AuthDevices.Items.Add(device);
                         comboBox_AuthDevices.SelectedIndex = 0;
                         continue;
+                    }
+                    else
+                    {
+                        // Add to apps combo
+                        comboBox_SelectAppsDevice.Items.Add(device);
+
+                        // Add to files combo
+                        comboBox_SelectFilesDevice.Items.Add(device);
+
+                        // Add to transfer files combo
+                        comboBox_TransferFilesDevice.Items.Add(device);
+
+                        // Add to scrcpy combo
+                        comboBox_ScrcpyDevice.Items.Add(device);
+
+                        // Set selected element to first index
+                        comboBox_SelectAppsDevice.SelectedIndex = comboBox_SelectFilesDevice.SelectedIndex = comboBox_TransferFilesDevice.SelectedIndex = comboBox_ScrcpyDevice.SelectedIndex = 0;
                     }
 
                     if (device.HasUnlimitedBackup)
@@ -193,31 +204,35 @@ namespace GoogleBackupManager
 
                 #endregion
 
-                #region "Enable/disable ComboBoxes"
+                #region "Enable/disable unlimited backup combos"
 
-                // Enable authorization group only if a device needs to be authorized
+                // Enable authorization group only if there's a device in its combo
                 groupBox_Authorization.IsEnabled = comboBox_AuthDevices.Items.Count > 0;
 
-                // Enable extract device ComboBox only there's at least one device
-                comboBox_ExtractDevice.IsEnabled = comboBox_ExtractDevice.Items.Count > 0;
+                // Enable unlimited backup tab only if there's at least one device in both extract and backup combos
+                tabItem_UnlimitedBackup.IsEnabled = comboBox_ExtractDevice.Items.Count > 0 && comboBox_BackupDevice.Items.Count > 0;
 
-                // Enable backup device ComboBox only there's at least one device
-                comboBox_BackupDevice.IsEnabled = comboBox_BackupDevice.Items.Count > 0;
-
-                // Enable backup button only if there are enough devices.
-                if (comboBox_ExtractDevice.IsEnabled && comboBox_BackupDevice.IsEnabled)
-                {
-                    button_PerformBackup.IsEnabled = true;
-                    tabControl_Program.SelectedIndex = 0;
-                }
-                else
-                {
-                    button_PerformBackup.IsEnabled = false;
-                }
+                // Enable apps, files and scrcpy tab only if there's at least one device in uninstall app combobox
+                tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = groupBox_ScreenCopy.IsEnabled = comboBox_SelectAppsDevice.Items.Count > 0;
 
                 #endregion
 
                 #endregion
+
+                #region "Write info about devices in filtered output"
+
+                // Enable backup button in backup tab only if program is ready to work
+                if (connectedDevicesCount.Equals(1))
+                {
+                    WriteToOutput("Only one device connected!\nPlease connect another device to continue.", true, true, false);
+                }
+
+                if (ADB.ConnectedDevices.Any(connectedDevice => !connectedDevice.IsAuthorized))
+                {
+                    WriteToOutput("Seems there are devices unauthorized!\nPlease authorize them to continue.", false, true, false);
+                }
+
+                WriteToOutput(string.Empty, false, false, true);
 
                 WriteToOutput("Connected devices:", clearPreviousOutput, true, false);
 
@@ -227,6 +242,8 @@ namespace GoogleBackupManager
                 }
 
                 WriteToOutput(string.Empty, false, false, true);
+
+                #endregion
             }
             else
             {
@@ -327,7 +344,7 @@ namespace GoogleBackupManager
         {
             Device selectedDevice = comboBox_AuthDevices.SelectedItem as Device;
             selectedDevice.IsAuthorized = ADB.AuthorizeDevice(selectedDevice.ID);
-            RefreshForm(true);         
+            RefreshForm(true);
         }
 
         /// <summary>
@@ -342,7 +359,7 @@ namespace GoogleBackupManager
 
         ////////////////////////////////////////////////////////////////////////
         //                                                                    //
-        //                              DEVELOPMENT                           //
+        //                                  UTILS                             //
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
@@ -378,8 +395,31 @@ namespace GoogleBackupManager
             }
 
             ADB.ConnectedDevices.Add(fakeDevice);
-            
+
             RefreshForm(true);
+        }
+
+        private void button_StartScreenCopy_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void button_ShowRawOutput_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void checkBox_WhatsAppAll_Click(object sender, RoutedEventArgs e)
+        {
+            if ((bool)checkBox_WhatsAppAll.IsChecked)
+            {
+                // Check also other WhatsApp checkboxes
+                checkBox_WhatsApp_Backups.IsChecked = checkBox_WhatsApp_Database.IsChecked = checkBox_WhatsApp_Media.IsChecked = true;
+            }
+            else
+            {
+                checkBox_WhatsApp_Backups.IsChecked = checkBox_WhatsApp_Database.IsChecked = checkBox_WhatsApp_Media.IsChecked = false;
+            }
         }
     }
 }

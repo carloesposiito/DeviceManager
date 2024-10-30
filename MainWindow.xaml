@@ -6,10 +6,11 @@
         xmlns:local="clr-namespace:GoogleBackupManager"
         mc:Ignorable="d"
         AllowsTransparency="True"
-        Height="470"
+        d:Height="900"
+        Height="530"
         d:Visibility="Visible"
         Visibility="Collapsed"
-        Width="700"
+        Width="730"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None">
 
@@ -48,117 +49,14 @@
                     Grid.Row="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <!--Program section-->
                     <TabControl Grid.Column="0"
                                 Style="{StaticResource tabControl_Common}"
                                 x:Name="tabControl_Program">
-
-                        <!--Applications tab-->
-                        <!--<TabItem Header="Applications">
-                            <GroupBox Header="Backup and restore"
-                                      Style="{StaticResource groupBox_Common}"
-                                      VerticalAlignment="Top">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition />
-                                        <ColumnDefinition />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                    </Grid.RowDefinitions>
-
-                                    <CheckBox Grid.Row="0"
-                                              Grid.Column="0"
-                                              Margin="5,10,5,5"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                    <CheckBox Grid.Row="0"
-                                              Grid.Column="1"
-                                              Margin="5,10,5,5"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                    <CheckBox Grid.Row="1"
-                                              Grid.Column="0"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                    <CheckBox Grid.Row="1"
-                                              Grid.Column="1"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                    <CheckBox Grid.Row="2"
-                                              Grid.Column="0"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                    <CheckBox Grid.Row="2"
-                                              Grid.Column="1"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                    <CheckBox Grid.Row="3"
-                                              Grid.Column="0"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                    <CheckBox Grid.Row="3"
-                                              Grid.Column="1"
-                                              Style="{StaticResource checkBox_Backup}" />
-
-                                </Grid>
-                            </GroupBox>
-                        </TabItem>-->
-
-                        <!--Backup tab-->
-                        <TabItem Header="Backup"
-                                 Style="{StaticResource tabItem_Common}"
-                                 x:Name="tabItem_UnlimitedBackup">
-                            <Grid Style="{StaticResource grid_TabItemParent}"
-                                  x:Name="grid_Backup">
-                                <GroupBox Header="Backup"
-                                          Style="{StaticResource groupBox_Common}">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-
-                                        <Label Content="Extract from:"
-                                               Grid.Row="0"
-                                               Style="{StaticResource label_CommonItalic}" />
-
-                                        <ComboBox Grid.Row="1"
-                                                  DisplayMemberPath="Name"
-                                                  Style="{StaticResource comboBox_Common}"
-                                                  x:Name="comboBox_ExtractDevice" />
-
-                                        <Label Content="Backup on:"
-                                               Grid.Row="2"
-                                               Style="{StaticResource label_CommonItalic}" />
-
-                                        <ComboBox Grid.Row="3"
-                                                  DisplayMemberPath="Name"
-                                                  Style="{StaticResource comboBox_Common}"
-                                                  x:Name="comboBox_BackupDevice" />
-
-                                        <Button Click="button_StartBackup_Click"
-                                                Content="Start"
-                                                Grid.Row="4"
-                                                Margin="5,15,5,10"
-                                                Style="{StaticResource button_Common}"
-                                                x:Name="button_PerformBackup" />
-                                    </Grid>
-
-                                </GroupBox>
-                            </Grid>
-
-                        </TabItem>
 
                         <!--Devices tab-->
                         <TabItem Header="Devices"
@@ -271,22 +169,406 @@
                             </Grid>
                         </TabItem>
 
-                        <!--Development tab-->
-                        <TabItem Header="Develop"
+                        <!--Applications tab-->
+                        <TabItem Header="Apps"
                                  Style="{StaticResource tabItem_Common}"
-                                 Visibility="Collapsed"
-                                 x:Name="tabItem_Development">
+                                 x:Name="tabItem_Apps">
                             <Grid Style="{StaticResource grid_TabItemParent}">
-                                <GroupBox Header="Output"
-                                          Style="{StaticResource groupBox_Common}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                                    <Button Click="button_AddFakeDevice_Click"
-                                            Content="Add a fake device"
-                                            Margin="5,10"
-                                            Style="{StaticResource button_Common}"
-                                            x:Name="button_AddFakeDevice" />
+                                <GroupBox Header="Manage apps"
+                                          Style="{StaticResource groupBox_Common}"
+                                          VerticalAlignment="Top">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Label Content="Select a device:"
+                                               Grid.Row="0"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <ComboBox Grid.Row="1"
+                                                  DisplayMemberPath="Name"
+                                                  Style="{StaticResource comboBox_Common}"
+                                                  x:Name="comboBox_SelectAppsDevice" />
+
+                                        <Label Content="Third party apps:"
+                                               Grid.Row="2"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <Grid Grid.Row="3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="70*" />
+                                                <ColumnDefinition Width="30*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <ComboBox Grid.Column="0"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      Margin="5"
+                                                      x:Name="comboBox_DeviceThirdPartyApps" />
+
+                                            <Button Content="Disable"
+                                                    Grid.Column="1"
+                                                    Margin="5"
+                                                    Style="{StaticResource button_Common}"
+                                                    x:Name="button_UninstallThirdPartyApp" />
+
+                                        </Grid>
+
+                                        <Label Content="System apps:"
+                                               Grid.Row="4"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <Grid Grid.Row="5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="70*" />
+                                                <ColumnDefinition Width="30*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <ComboBox Grid.Column="0"
+                                                      Margin="5"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      x:Name="comboBox_DeviceSystemApps" />
+
+                                            <Button Content="Disable"
+                                                    Grid.Column="1"
+                                                    Margin="5"
+                                                    Style="{StaticResource button_Common}"
+                                                    x:Name="button_UninstallSystemApp" />
+
+                                        </Grid>
+
+                                        <Label Content="All device apps:"
+                                               Grid.Row="6"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <Grid Grid.Row="7">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="70*" />
+                                                <ColumnDefinition Width="30*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <ComboBox Grid.Row="7"
+                                                      Margin="5,5,5,10"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      x:Name="comboBox_DeviceAllApps" />
+
+                                            <Button Content="Disable"
+                                                    Grid.Column="1"
+                                                    Margin="5,5,5,10"
+                                                    Style="{StaticResource button_Common}"
+                                                    x:Name="button_UninstallApp" />
+
+                                        </Grid>
+
+                                    </Grid>
+                                </GroupBox>
+
+                            </Grid>
+                        </TabItem>
+
+                        <!--Files tab-->
+                        <TabItem Header="Files"
+                                 Style="{StaticResource tabItem_Common}"
+                                 x:Name="tabItem_Files">
+                            <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden">
+                                <Grid Style="{StaticResource grid_TabItemParent}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <GroupBox Header="Extract"
+                                              Grid.Row="0"
+                                              Style="{StaticResource groupBox_Common}">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <Label Content="Select a device:"
+                                                   Grid.Row="0"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <ComboBox Grid.Row="1"
+                                                      DisplayMemberPath="Name"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      x:Name="comboBox_SelectFilesDevice" />
+
+                                            <Grid Grid.Row="2">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+
+                                                <!--Alarms-->
+                                                <CheckBox Content="Alarms"
+                                                          Grid.Column="0"
+                                                          Grid.Row="0"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                                <!--DCIM-->
+                                                <CheckBox Content="DCIM"
+                                                          Grid.Column="0"
+                                                          Grid.Row="1"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                                <!--Documents-->
+                                                <CheckBox Content="Documents"
+                                                          Grid.Column="0"
+                                                          Grid.Row="2"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                                <!--Downloads-->
+                                                <CheckBox Content="Downloads"
+                                                          Grid.Column="0"
+                                                          Grid.Row="3"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                                <!--Music-->
+                                                <CheckBox Content="Music"
+                                                          Grid.Column="0"
+                                                          Grid.Row="4"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                                <!--Pictures-->
+                                                <CheckBox Content="Pictures"
+                                                          Grid.Column="0"
+                                                          Grid.Row="5"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                                <!--Ringtones-->
+                                                <CheckBox Content="Ringtones"
+                                                          Grid.Column="1"
+                                                          Grid.Row="0"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                                <CheckBox Content="WhatsApp [Backups]"
+                                                          Grid.Column="1"
+                                                          Grid.Row="1"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}"
+                                                          x:Name="checkBox_WhatsApp_Backups" />
+
+                                                <CheckBox Content="WhatsApp [DB]"
+                                                          Grid.Column="1"
+                                                          Grid.Row="2"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}"
+                                                          x:Name="checkBox_WhatsApp_Database" />
+
+                                                <CheckBox Content="WhatsApp [Media]"
+                                                          Grid.Column="1"
+                                                          Grid.Row="3"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}"
+                                                          x:Name="checkBox_WhatsApp_Media" />
+
+                                                <CheckBox Click="checkBox_WhatsAppAll_Click"
+                                                          Content="WhatsApp [All]"
+                                                          Grid.Column="1"
+                                                          Grid.Row="4"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}"
+                                                          x:Name="checkBox_WhatsAppAll" />
+
+                                                <CheckBox Content="Everything"
+                                                          Grid.Column="1"
+                                                          Grid.Row="5"
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" />
+
+                                            </Grid>
+
+                                            <Grid Grid.Row="3">
+                                                <Button Content="Extract"
+                                                        Grid.Column="0"
+                                                        Style="{StaticResource button_Common}" />
+                                            </Grid>
+
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <GroupBox Header="Restore"
+                                              Grid.Row="1"
+                                              Style="{StaticResource groupBox_Common}">
+
+                                    </GroupBox>
+
+                                    <GroupBox Header="Transfer"
+                                              Grid.Row="2"
+                                              Style="{StaticResource groupBox_Common}">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <Label Content="Select a device:"
+                                                   Grid.Row="0"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <ComboBox Grid.Row="1"
+                                                      DisplayMemberPath="Name"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      x:Name="comboBox_TransferFilesDevice" />
+
+                                            <Label Content="Folder with files:"
+                                                   Grid.Row="2"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <TextBox Grid.Row="3"
+                                                     Style="{StaticResource textBox_Input}"
+                                                     x:Name="textBox_FilesToTransferPath" />
+
+                                            <Button Content="Transfer"
+                                                    Grid.Row="4"
+                                                    Margin="5,15,5,10"
+                                                    Style="{StaticResource button_Common}" />
+
+                                        </Grid>
+                                    </GroupBox>
+
+                                </Grid>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!--Backup tab-->
+                        <TabItem Header="Unlimited backup"
+                                 Style="{StaticResource tabItem_Common}"
+                                 x:Name="tabItem_UnlimitedBackup">
+                            <Grid Style="{StaticResource grid_TabItemParent}"
+                                  x:Name="grid_Backup">
+                                <GroupBox Header="Unlimited backup"
+                                          Style="{StaticResource groupBox_Common}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Label Content="Extract from:"
+                                               Grid.Row="0"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <ComboBox Grid.Row="1"
+                                                  DisplayMemberPath="Name"
+                                                  Style="{StaticResource comboBox_Common}"
+                                                  x:Name="comboBox_ExtractDevice" />
+
+                                        <Label Content="Backup on:"
+                                               Grid.Row="2"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <ComboBox Grid.Row="3"
+                                                  DisplayMemberPath="Name"
+                                                  Style="{StaticResource comboBox_Common}"
+                                                  x:Name="comboBox_BackupDevice" />
+
+                                        <Button Click="button_StartBackup_Click"
+                                                Content="Start"
+                                                Grid.Row="4"
+                                                Margin="5,15,5,10"
+                                                Style="{StaticResource button_Common}"
+                                                x:Name="button_PerformBackup" />
+                                    </Grid>
 
                                 </GroupBox>
+                            </Grid>
+
+                        </TabItem>
+
+                        <!--Development tab-->
+                        <TabItem Header="Utils"
+                                 Style="{StaticResource tabItem_Common}"
+                                 x:Name="tabItem_Utils">
+                            <Grid Style="{StaticResource grid_TabItemParent}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <GroupBox Header="Output"
+                                          Style="{StaticResource groupBox_Common}"
+                                          x:Name="groupBox_UtilsOutput">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Button Click="button_AddFakeDevice_Click"
+                                                Content="Add a fake device"
+                                                Margin="5,10"
+                                                Style="{StaticResource button_Common}"
+                                                d:Visibility="Visible"
+                                                Visibility="Collapsed"
+                                                x:Name="button_AddFakeDevice" />
+
+                                        <Button Click="button_ShowRawOutput_Click"
+                                                Content="Show raw output"
+                                                Grid.Row="1"
+                                                Margin="5,10"
+                                                Style="{StaticResource button_Common}"
+                                                x:Name="button_ShowRawOutput" />
+
+                                    </Grid>
+                                </GroupBox>
+
+                                <GroupBox Grid.Row="1"
+                                          Header="ScreenCopy"
+                                          Style="{StaticResource groupBox_Common}"
+                                          x:Name="groupBox_ScreenCopy">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Label Content="Select a device:"
+                                               Grid.Row="0"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <ComboBox Grid.Row="1"
+                                                  DisplayMemberPath="Name"
+                                                  Style="{StaticResource comboBox_Common}"
+                                                  x:Name="comboBox_ScrcpyDevice" />
+
+                                        <Button Click="button_StartScreenCopy_Click"
+                                                Content="Start screen copy"
+                                                Grid.Row="2"
+                                                Margin="5,10"
+                                                Style="{StaticResource button_Common}"
+                                                x:Name="button_StartScreenCopy" />
+
+                                    </Grid>
+                                </GroupBox>
+
                             </Grid>
                         </TabItem>
 

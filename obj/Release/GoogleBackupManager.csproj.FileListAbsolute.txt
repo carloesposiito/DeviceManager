@@ -1,16 +1,3 @@
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\adb.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\AdbWinApi.dll
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\AdbWinUsbApi.dll
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\etc1tool.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\fastboot.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\hprof-conv.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\libwinpthread-1.dll
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\make_f2fs.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\make_f2fs_casefold.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\mke2fs.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\sqlite3.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\mke2fs.conf
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\PlatformTools\source.properties
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\GoogleBackupManager.exe.config
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\GoogleBackupManager.exe
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\GoogleBackupManager.pdb
@@ -18,7 +5,6 @@ C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\G
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\MainWindow.g.cs
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\MessageDialog.g.cs
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\App.g.cs
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\GoogleBackupManager_Content.g.cs
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\GoogleBackupManager_MarkupCompile.cache
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\GoogleBackupManager_MarkupCompile.lref
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\MainWindow.baml
@@ -61,3 +47,7 @@ C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Release\
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Release\GoogleBackupManager.csproj.CoreCompileInputs.cache
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Release\GoogleBackupManager.exe
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Release\GoogleBackupManager.pdb
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\Resources\PlatformTools.zip
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\ApplicationStyles.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\WaitingDialog.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\WaitingDialog.baml
