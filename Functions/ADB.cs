@@ -434,7 +434,7 @@ namespace GoogleBackupManager.Functions
             {
                 totalFilesCount += await ExecutePullCommand(sourceDevice.ID, sourceDeviceFolder);
             }
-            
+
             return totalFilesCount;
         }
 
@@ -527,12 +527,6 @@ namespace GoogleBackupManager.Functions
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
-
-
-
-
-
-
         /// <summary>
         /// Starts ADB server.
         /// </summary>
@@ -542,8 +536,6 @@ namespace GoogleBackupManager.Functions
         {
             await ExecuteCommand("adb start-server");
         }
-
-       
 
         /// <summary>
         /// Executes a pull command in ADB command prompt.
@@ -555,15 +547,20 @@ namespace GoogleBackupManager.Functions
         {
             _filteredOutput.Clear();
 
-            // Determine destination folder
-            const string START_PATTERN_1 = "/0/";
-            int start_1 = sourceDeviceFolder.IndexOf("/0/") + START_PATTERN_1.Length;
-            string localDestinationFolderPath = $"{Utils.ProgramFolders.ExtractDeviceDirectory}";
+            List<string> splittedSourceDeviceFolder = sourceDeviceFolder.Split(new char[] { '\\', '/' }).Where
+                    (splitted => 
+                        !string.IsNullOrWhiteSpace(splitted) &&
+                        !splitted.Contains("storage") &&
+                        !splitted.Contains("emulated") &&
+                        !splitted.Contains("0")
+                    ).ToList();
 
-            // Create it if doesn't exists
-            Directory.CreateDirectory(localDestinationFolderPath);           
+            splittedSourceDeviceFolder.RemoveAt(splittedSourceDeviceFolder.Count() - 1);
+            string destinationPath = string.Join("/", splittedSourceDeviceFolder);
+            string localDestinationFolderPath = Path.Combine(Utils.ProgramFolders.ExtractDeviceDirectory, destinationPath).Replace('\\', '/');
 
-            // Command to transfer files
+            Directory.CreateDirectory(localDestinationFolderPath);
+
             string command = $"adb -s {sourceDeviceIdentifier} pull \"{sourceDeviceFolder}\" \"{localDestinationFolderPath}\"";
 
             using (Process _adbProcess = new Process())
@@ -629,17 +626,17 @@ namespace GoogleBackupManager.Functions
                 if (lastLine.Contains("pulled"))
                 {
                     // Extract pulled files count
-                    const string START_PATTERN_2 = ": ";
-                    const string END_PATTERN_2 = " files";
-                    int start_2 = lastLine.IndexOf(START_PATTERN_2) + START_PATTERN_2.Length;
-                    int end_2 = lastLine.IndexOf(END_PATTERN_2);
-                    string pulledFilesString = lastLine.Substring(start_2, end_2 - start_2);
-
-                    const string START_PATTERN_3 = ", ";
-                    const string END_PATTERN_3 = " skipped";
+                    const string START_PATTERN_3 = ": ";
+                    const string END_PATTERN_3 = " files";
                     int start_3 = lastLine.IndexOf(START_PATTERN_3) + START_PATTERN_3.Length;
                     int end_3 = lastLine.IndexOf(END_PATTERN_3);
-                    string skippedFilesString = lastLine.Substring(start_3, end_3 - start_3);
+                    string pulledFilesString = lastLine.Substring(start_3, end_3 - start_3);
+
+                    const string START_PATTERN_4 = ", ";
+                    const string END_PATTERN_4 = " skipped";
+                    int start_4 = lastLine.IndexOf(START_PATTERN_4) + START_PATTERN_4.Length;
+                    int end_4 = lastLine.IndexOf(END_PATTERN_4);
+                    string skippedFilesString = lastLine.Substring(start_4, end_4 - start_4);
 
                     if (!int.TryParse(pulledFilesString, out pulledFiles) && !int.TryParse(skippedFilesString, out skippedFiles))
                     {

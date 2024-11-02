@@ -179,7 +179,7 @@ namespace GoogleBackupManager.Functions
             }
 
             // Inside it create directory for extract device
-            ProgramFolders.ExtractDeviceDirectory = $"{ProgramFolders.ExtractDirectory}\\ID{extractDevice.Name.Replace(" ", "_")}_DT{extractDevice.ID}_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}";
+            ProgramFolders.ExtractDeviceDirectory = $"{ProgramFolders.ExtractDirectory}\\{extractDevice.Name.Replace(" ", "")}_[{extractDevice.ID}]";
 
             if (!Directory.Exists(ProgramFolders.ExtractDeviceDirectory))
             {

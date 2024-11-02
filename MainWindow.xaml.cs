@@ -492,83 +492,109 @@ namespace GoogleBackupManager
             }
         }
 
-
         private async void button_Extract_Click(object sender, RoutedEventArgs e)
         {
-            WriteToOutput("Extracting files, please wait...");
-
-            // Get selected source device
-            Device sourceDevice = comboBox_SelectFilesDevice.SelectedItem as Device;
-            
-            // Populate folder to be extracted list according to selected checkboxes
-            List<string> foldersToBeExtracted = new List<string>();
-
-            if ((bool)checkBox_Everything.IsChecked)
+            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
             {
-                foldersToBeExtracted.Add(sourceDevice.DeviceFolderPath);
+                try
+                {
+                    WriteToOutput("Extracting files, please wait...");
+
+                    // Get selected source device
+                    Device sourceDevice = comboBox_SelectFilesDevice.SelectedItem as Device;
+
+                    // Populate folder to be extracted list according to selected checkboxes
+                    List<string> foldersToBeExtracted = new List<string>();
+
+                    if ((bool)checkBox_Everything.IsChecked)
+                    {
+                        foldersToBeExtracted.Add(sourceDevice.DeviceFolderPath);
+                    }
+                    else
+                    {
+                        if ((bool)checkBox_WhatsAppAll.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.WhatsAppFolderPath);
+                        }
+                        else
+                        {
+                            if ((bool)checkBox_WhatsApp_Backups.IsChecked)
+                            {
+                                foldersToBeExtracted.Add(sourceDevice.WhatsAppBackupsFolderPath);
+                            }
+
+                            if ((bool)checkBox_WhatsApp_Database.IsChecked)
+                            {
+                                foldersToBeExtracted.Add(sourceDevice.WhatsAppDatabasesFolderPath);
+                            }
+
+                            if ((bool)checkBox_WhatsApp_Media.IsChecked)
+                            {
+                                foldersToBeExtracted.Add(sourceDevice.WhatsAppMediaFolderPath);
+                            }
+                        }
+
+                        if ((bool)checkBox_Alarms.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.AlarmsFolderPath);
+                        }
+
+                        if ((bool)checkBox_DCIM.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.DcimFolderPath);
+                        }
+
+                        if ((bool)checkBox_Documents.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.DocumentsFolderPath);
+                        }
+
+                        if ((bool)checkBox_Downloads.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.DownloadsFolderPath);
+                        }
+
+                        if ((bool)checkBox_Music.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.MusicFolderPath);
+                        }
+
+                        if ((bool)checkBox_Pictures.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.PicturesFolderPath);
+                        }
+
+                        if ((bool)checkBox_Ringtones.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(sourceDevice.RingtonesFolderPath);
+                        }
+                    }
+
+                    var filesCount = await ADB.ExecutePullCommand(sourceDevice, foldersToBeExtracted);
+
+                    WriteToOutput($"{filesCount} files extracted.", false, true, true);
+                }
+                catch (Exception ex)
+                {
+                    WriteToOutput($"Error while extracing files from device!\n{ex.Message}", false, true, true);
+                }
+                finally
+                {
+                    Monitor.Exit(_syncMonitor);
+
+                    // Uncheck all checkboxes
+                    foreach (var item in grid_ExtractCheckBoxes.Children)
+                    {
+                        var itemType = item.GetType();
+                        if (itemType.Name.Equals("CheckBox"))
+                        {
+                            CheckBox tempItem = item as CheckBox;
+                            tempItem.IsChecked = false;
+                        }
+                    }
+                }
             }
-            else
-            {
-                if ((bool)checkBox_WhatsAppAll.IsChecked)
-                {
-                    foldersToBeExtracted.Add(sourceDevice.WhatsAppFolderPath);
-                }
-                else
-                {
-                    if ((bool)checkBox_WhatsApp_Backups.IsChecked)
-                    {
-                        foldersToBeExtracted.Add(sourceDevice.WhatsAppBackupsFolderPath);
-                    }
-
-                    if ((bool)checkBox_WhatsApp_Database.IsChecked)
-                    {
-                        foldersToBeExtracted.Add(sourceDevice.WhatsAppDatabasesFolderPath);
-                    }
-                    
-                    if ((bool)checkBox_WhatsApp_Media.IsChecked)
-                    {
-                        foldersToBeExtracted.Add(sourceDevice.WhatsAppMediaFolderPath);
-                    }
-                }
-
-                if ((bool)checkBox_Alarms.IsChecked)
-                {
-                    foldersToBeExtracted.Add(sourceDevice.AlarmsFolderPath);
-                }
-
-                if ((bool)checkBox_DCIM.IsChecked)
-                {
-                    foldersToBeExtracted.Add(sourceDevice.DcimFolderPath);
-                }
-
-                if ((bool)checkBox_Documents.IsChecked)
-                {
-                    foldersToBeExtracted.Add(sourceDevice.DocumentsFolderPath);
-                }
-
-                if ((bool)checkBox_Music.IsChecked)
-                {
-                    foldersToBeExtracted.Add(sourceDevice.MusicFolderPath);
-                }
-
-                if ((bool)checkBox_Pictures.IsChecked)
-                {
-                    foldersToBeExtracted.Add(sourceDevice.PicturesFolderPath);
-                }
-
-                if ((bool)checkBox_Ringtones.IsChecked)
-                {
-                    foldersToBeExtracted.Add(sourceDevice.RingtonesFolderPath);
-                }
-            }
-
-            var operationResult = await ADB.ExecutePullCommand(sourceDevice, foldersToBeExtracted);
-
-           // WriteToOutput($"{operationResult}/{filesCount} files copied.", false, true, true);
         }
-
-
-
 
         private void button_SelectTransferFileFolder(object sender, RoutedEventArgs e)
         {
@@ -577,32 +603,36 @@ namespace GoogleBackupManager
 
         private async void button_TransferFiles_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
             {
-                string selectedDir = textBox_FilesToTransferPath.Text;
-
-                int filesCount = Directory.GetFiles(selectedDir, "*", SearchOption.AllDirectories).Count();
-                if (Directory.Exists(selectedDir) && filesCount > 0)
+                try
                 {
-                    WriteToOutput("Copying files, please wait...");
+                    string selectedDir = textBox_FilesToTransferPath.Text;
 
-                    Device destinationDevice = comboBox_TransferFilesDevice.SelectedItem as Device;
-                    var operationResult = await ADB.ExecutePushCommand(destinationDevice.ID, destinationDevice.DocumentsFolderPath, $"{selectedDir}");
+                    int filesCount = Directory.GetFiles(selectedDir, "*", SearchOption.AllDirectories).Count();
+                    if (Directory.Exists(selectedDir) && filesCount > 0)
+                    {
+                        WriteToOutput("Copying files, please wait...");
 
-                    WriteToOutput($"{operationResult}/{filesCount} files copied.", false, true, true);                   
+                        Device destinationDevice = comboBox_TransferFilesDevice.SelectedItem as Device;
+                        var operationResult = await ADB.ExecutePushCommand(destinationDevice.ID, destinationDevice.DocumentsFolderPath, $"{selectedDir}");
+
+                        WriteToOutput($"{operationResult}/{filesCount} files copied to device.", false, true, true);
+                    }
+                    else
+                    {
+                        Utils.ShowMessageDialog("Selected folder not exists or is empty!");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Utils.ShowMessageDialog("Selected folder not exists or is empty!");
+                    WriteToOutput($"Error while copying files to device!\n{ex.Message}", false, true, true);
                 }
-            }
-            catch (Exception ex)
-            {
-                WriteToOutput($"Error while copying files!\n{ex.Message}", false, true, true);
-            }
-            finally
-            {
-                textBox_FilesToTransferPath.Text = string.Empty;
+                finally
+                {
+                    Monitor.Exit(_syncMonitor);
+                    textBox_FilesToTransferPath.Text = string.Empty;
+                }
             }
         }
 
@@ -754,6 +784,6 @@ namespace GoogleBackupManager
             return Application.Current.Dispatcher.InvokeAsync(action).Task;
         }
 
-        
+
     }
 }

@@ -20,15 +20,15 @@ namespace GoogleBackupManager.Model
         private string alarmsFolderPath = "/storage/emulated/0/Alarms/";
         private string dcimFolderPath = "/storage/emulated/0/DCIM/";
         private string documentsFolderPath = "/storage/emulated/0/Documents/";
-        private string downloadsFolderPath = "/storage/emulated/0/Downloads/";
+        private string downloadsFolderPath = "/storage/emulated/0/Download/";
         private string musicFolderPath = "/storage/emulated/0/Music/";
         private string picturesFolderPath = "/storage/emulated/0/Pictures/";
         private string ringtonesFolderPath = "/storage/emulated/0/Ringtones/";
         private string deviceFolderPath = "/storage/emulated/0";
-        private string whatsAppBackupsFolderPath = "/storage/emulated/0/Andorid/media/com.whatsapp/WhatsApp/Backups";
-        private string whatsAppDatabasesFolderPath = "/storage/emulated/0/Andorid/media/com.whatsapp/WhatsApp/Databases";
-        private string whatsAppMediaFolderPath = "/storage/emulated/0/Andorid/media/com.whatsapp/WhatsApp/Media";
-        private string whatsAppFolderPath = "/storage/emulated/0/Andorid/media/com.whatsapp/WhatsApp";
+        private string whatsAppBackupsFolderPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Backups";
+        private string whatsAppDatabasesFolderPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Databases";
+        private string whatsAppMediaFolderPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media";
+        private string whatsAppFolderPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp";
 
         #endregion
 
