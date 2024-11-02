@@ -16,6 +16,8 @@ namespace GoogleBackupManager.Model
         private bool _hasUnlimitedBackup;
         private bool _isWirelessConnected;
 
+        private string documentFolderPath = "/storage/emulated/0/Documents/";
+
         #endregion
 
         #region "Getters and setters"
@@ -25,6 +27,9 @@ namespace GoogleBackupManager.Model
         public bool IsAuthorized { get => _authorized; set => _authorized = value; }
         public bool HasUnlimitedBackup { get => _hasUnlimitedBackup; set => _hasUnlimitedBackup = value; }
         public bool IsWirelessConnected { get => _isWirelessConnected; set => _isWirelessConnected = value; }
+        public string DocumentFolder { get => documentFolderPath; set => documentFolderPath = value; }
+
+
 
         #endregion
 

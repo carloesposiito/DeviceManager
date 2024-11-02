@@ -8,7 +8,9 @@
         AllowsTransparency="True"
         d:Height="900"
         Height="530"
+        Loaded="Window_Loaded"
         d:Visibility="Visible"
+        ShowInTaskbar="False"
         Visibility="Collapsed"
         Width="730"
         WindowStartupLocation="CenterScreen"
@@ -282,7 +284,8 @@
                                  Style="{StaticResource tabItem_Common}"
                                  x:Name="tabItem_Files">
                             <ScrollViewer HorizontalScrollBarVisibility="Hidden"
-                                          VerticalScrollBarVisibility="Hidden">
+                                          VerticalScrollBarVisibility="Hidden"
+                                          x:Name="scrollViewer_Files">
                                 <Grid Style="{StaticResource grid_TabItemParent}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
@@ -426,6 +429,7 @@
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
 
                                             <Label Content="Select a device:"
@@ -451,7 +455,8 @@
                                                          Style="{StaticResource textBox_Input}"
                                                          x:Name="textBox_FilesToTransferPath" />
 
-                                                <Button Click="button_SelectTransferFileFolder" Content="Select"
+                                                <Button Click="button_SelectTransferFileFolder"
+                                                        Content="Select"
                                                         Grid.Column="1"
                                                         Style="{StaticResource button_Common}" />
 
@@ -459,7 +464,7 @@
 
                                             <Button Click="button_TransferFiles_Click"
                                                     Content="Transfer"
-                                                    Grid.Row="4"
+                                                    Grid.Row="5"
                                                     Style="{StaticResource button_Common}"
                                                     x:Name="button_TransferFiles" />
 
@@ -485,6 +490,7 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
                                         <Label Content="Extract from:"
@@ -505,10 +511,15 @@
                                                   Style="{StaticResource comboBox_Common}"
                                                   x:Name="comboBox_BackupDevice" />
 
+                                        <CheckBox Content="Save files into pc"
+                                                  Grid.Row="4"
+                                                  Style="{StaticResource checkBox_ExtractRestoreFiles}"
+                                                  x:Name="checkBox_SaveFilesIntoPC" />
+
                                         <Button Click="button_StartBackup_Click"
                                                 Content="Start"
-                                                Grid.Row="4"
-                                                Margin="5,15,5,10"
+                                                Grid.Row="5"
+                                                Margin="5,10,5,10"
                                                 Style="{StaticResource button_Common}"
                                                 x:Name="button_PerformBackup" />
                                     </Grid>

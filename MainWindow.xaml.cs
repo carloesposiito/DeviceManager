@@ -8,10 +8,11 @@ using System.Windows.Input;
 using System.Net;
 using GoogleBackupManager.UI;
 using System.Linq;
-using System.Windows.Controls;
-using System.Windows.Forms;
-using CheckBox = System.Windows.Controls.CheckBox;
 using System.IO;
+using System.Windows.Controls;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Windows.Media.Animation;
 
 namespace GoogleBackupManager
 {
@@ -19,10 +20,16 @@ namespace GoogleBackupManager
     {
         #region "Variables"
 
-        /// <summary>
-        /// Describes if program is ready to perform a backup.
-        /// </summary>
-        private bool _isProgramReady = false;
+        private WaitingDialog _waitingDialog;
+        private bool _isUnlimitedBackupAvailable = false;
+
+        // Monitor variables
+        private readonly Object _syncMonitor = new object();
+        private bool _isScanning = false;
+
+        // Mouse scrolling variables
+        private bool _isScrolling = false;
+        private Point _startPoint;
 
         #endregion
 
@@ -30,15 +37,8 @@ namespace GoogleBackupManager
         {
             InitializeComponent();
 
-            ADB.InitializeConnection();
-            RefreshForm();
-
-#if DEBUG
-            button_AddFakeDevice.Visibility = Visibility.Visible;
-#endif
-
-            // Because scan is not done yet, clear output
-            textBlock_FilteredOutput.Text = string.Empty;
+            _waitingDialog = new WaitingDialog("Loading program...");
+            _waitingDialog.Show();
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -47,56 +47,71 @@ namespace GoogleBackupManager
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
-        #region "Functions"
+        #region "Functions"        
 
-        private void ScanDevices()
+        private async void ScanDevices()
         {
-            // Show waiting dialog
-            WaitingDialog waitingDialog = new WaitingDialog("Scanning devices, please wait...");
-            waitingDialog.Show();
-
-            try
+            if (!_isScanning)
             {
-                _isProgramReady = ADB.ScanDevices();
-
-                if (_isProgramReady)
+                bool lockAcquired = false;
+                try
                 {
-                    RefreshForm(false);
-                }
-                else
-                {
-                    WriteToOutput("Please authorize your device to permit backup!", true, true, true);
-                    RefreshForm(false);
-                }
+                    _isScanning = true;
+                    lockAcquired = Monitor.TryEnter(_syncMonitor);
 
-                waitingDialog.Close();
-            }
-            catch (PlatformToolsException ex)
-            {
-                // What to do when platform tools folder is not found
-                waitingDialog.Close();
-                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
-                Process.GetCurrentProcess().Kill();
-            }
-            catch (PlatformToolsTimeoutException ex)
-            {
-                // What to do when platform tools folder is not found
-                waitingDialog.Close();
-                Utils.ShowMessageDialog($"{ex.Message}\nPlease try again.");
-            }
-            catch (CommandPromptException ex)
-            {
-                // What to do when command prompt is not active anymore
-                waitingDialog.Close();
-                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
-                Process.GetCurrentProcess().Kill();
-            }
-            catch (Exception ex)
-            {
-                // What to do when there's a general error.
-                waitingDialog.Close();
-                RefreshForm(false);
-                WriteToOutput($"{ex.Message}\nPlease try again.", true, false, false);
+                    if (lockAcquired)
+                    {
+                        ResetForm();
+
+                        await RunOnUIThreadAsync(() => WriteToOutput("Scanning devices...", true, true));
+
+                        try
+                        {
+                            await ADB.ScanDevices();
+                            await RunOnUIThreadAsync(() => RefreshForm(false));
+                        }
+                        catch (PlatformToolsFolderException ex)
+                        {
+                            await RunOnUIThreadAsync(() =>
+                            {
+                                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
+                                Process.GetCurrentProcess().Kill();
+                            });
+                        }
+                        catch (CommandPromptException ex)
+                        {
+                            await RunOnUIThreadAsync(() =>
+                            {
+                                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
+                                Process.GetCurrentProcess().Kill();
+                            });
+                        }
+                        catch (PlatformToolsProcessException ex)
+                        {
+                            await RunOnUIThreadAsync(() =>
+                            {
+                                RefreshForm(false);
+                                WriteToOutput($"{ex.Message}", true, false, false);
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            await RunOnUIThreadAsync(() =>
+                            {
+                                RefreshForm(false);
+                                WriteToOutput($"{ex.Message}\nPlease try again.", true, false, false);
+                            });
+                        }
+                    }
+                }
+                finally
+                {
+                    if (lockAcquired)
+                    {
+                        Monitor.Exit(_syncMonitor);
+                    }
+                    _isScanning = false;
+                }
             }
         }
 
@@ -135,24 +150,7 @@ namespace GoogleBackupManager
         /// </summary>
         private void RefreshForm(bool clearPreviousOutput = false)
         {
-            #region "Reset form"
-
-            // Clear old combobox data
-            comboBox_BackupDevice.Items.Clear();
-            comboBox_ExtractDevice.Items.Clear();
-            comboBox_AuthDevices.Items.Clear();
-            comboBox_SelectAppsDevice.Items.Clear();
-            comboBox_SelectFilesDevice.Items.Clear();
-            comboBox_ScrcpyDevice.Items.Clear();
-            comboBox_TransferFilesDevice.Items.Clear();
-
-            // Disable unlimited backup, apps and files tabs
-            tabItem_UnlimitedBackup.IsEnabled = tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = false;
-
-            // Disable scrcpy and authorization groups
-            groupBox_Authorization.IsEnabled = groupBox_ScreenCopy.IsEnabled = false;
-
-            #endregion
+            ResetForm();
 
             int connectedDevicesCount = ADB.ConnectedDevices.Count;
 
@@ -188,24 +186,16 @@ namespace GoogleBackupManager
                         comboBox_SelectAppsDevice.SelectedIndex = comboBox_SelectFilesDevice.SelectedIndex = comboBox_TransferFilesDevice.SelectedIndex = comboBox_ScrcpyDevice.SelectedIndex = 0;
                     }
 
+                    // Add to unlimited backup device combo only if a Pixel
                     if (device.HasUnlimitedBackup)
                     {
-                        // Device has no name so it's property about unlimited backup is not valid
-                        // So I add it also in extract device ComboBox
-                        if (device.Name.Contains("Undefined"))
-                        {
-                            comboBox_ExtractDevice.Items.Add(device);
-                            comboBox_ExtractDevice.SelectedIndex = 0;
-                        }
-
                         comboBox_BackupDevice.Items.Add(device);
                         comboBox_BackupDevice.SelectedIndex = 0;
                     }
-                    else
-                    {
-                        comboBox_ExtractDevice.Items.Add(device);
-                        comboBox_ExtractDevice.SelectedIndex = 0;
-                    }
+
+                    // Add to extract device combo
+                    comboBox_ExtractDevice.Items.Add(device);
+                    comboBox_ExtractDevice.SelectedIndex = 0;
                 }
 
                 #endregion
@@ -227,15 +217,17 @@ namespace GoogleBackupManager
 
                 #region "Write info about devices in filtered output"
 
-                // Enable backup button in backup tab only if program is ready to work
-                if (connectedDevicesCount.Equals(1))
-                {
-                    WriteToOutput("Only one device connected!\nPlease connect another device to continue.", true, true, false);
-                }
-
                 if (ADB.ConnectedDevices.Any(connectedDevice => !connectedDevice.IsAuthorized))
                 {
-                    WriteToOutput("Seems there are devices unauthorized!\nPlease authorize them to continue.", false, true, false);
+                    WriteToOutput("Seems there is/are devices unauthorized!\nPlease authorize it/them to use it/them.", false, true, false);
+                }
+
+                if (connectedDevicesCount > 1)
+                {
+                    if (!_isUnlimitedBackupAvailable)
+                    {
+                        WriteToOutput("Unlimited backup tab disabled.", false, true, false);
+                    }
                 }
 
                 WriteToOutput(string.Empty, false, false, true);
@@ -253,8 +245,29 @@ namespace GoogleBackupManager
             }
             else
             {
-                WriteToOutput("No devices connected!\nScan devices again to continue.", true, false, false);
+                WriteToOutput("No devices connected!\nScan devices again to continue.", false, false, false);
             }
+        }
+
+        /// <summary>
+        /// Resets all controls in form.
+        /// </summary>
+        private void ResetForm()
+        {
+            // Clear old combobox data
+            comboBox_BackupDevice.Items.Clear();
+            comboBox_ExtractDevice.Items.Clear();
+            comboBox_AuthDevices.Items.Clear();
+            comboBox_SelectAppsDevice.Items.Clear();
+            comboBox_SelectFilesDevice.Items.Clear();
+            comboBox_ScrcpyDevice.Items.Clear();
+            comboBox_TransferFilesDevice.Items.Clear();
+
+            // Disable unlimited backup, apps and files tabs
+            tabItem_UnlimitedBackup.IsEnabled = tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = false;
+
+            // Disable scrcpy and authorization groups
+            groupBox_Authorization.IsEnabled = groupBox_ScreenCopy.IsEnabled = false;
         }
 
         #endregion
@@ -267,16 +280,50 @@ namespace GoogleBackupManager
 
         #region "Events"
 
+        #region "Form general events"
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            this.Visibility = Visibility.Collapsed;
+
+            try
+            {
+                await ADB.InitializeConnection();
+            }
+            catch (PlatformToolsFolderException ex)
+            {
+                _waitingDialog.Close();
+                Utils.ShowMessageDialog(ex.Message);
+                Process.GetCurrentProcess().Kill();
+            }
+            finally
+            {
+                _waitingDialog.Close();
+                ResetForm();
+                this.ShowInTaskbar = true;
+                this.Visibility = Visibility.Visible;
+
+#if DEBUG
+                button_AddFakeDevice.Visibility = Visibility.Visible;
+#endif
+
+                // Clear filtered output because scanning is not already done
+                textBlock_FilteredOutput.Text = string.Empty;
+            }
+        }
+
         private void border_Upper_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             DragMove();
         }
 
-        private void button_Close_Click(object sender, RoutedEventArgs e)
+        private async void button_Close_Click(object sender, RoutedEventArgs e)
         {
-            ADB.CloseConnection();
+            await ADB.CloseConnection();
             Close();
         }
+
+        #endregion
 
         ////////////////////////////////////////////////////////////////////////
         //                                                                    //
@@ -289,11 +336,27 @@ namespace GoogleBackupManager
             ScanDevices();
         }
 
-        private void button_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
+        private async void button_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
         {
-            Device selectedDevice = comboBox_AuthDevices.SelectedItem as Device;
-            selectedDevice.IsAuthorized = ADB.AuthorizeDevice(selectedDevice.ID);
-            RefreshForm(true);
+            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            {
+                try
+                {
+                    Device selectedDevice = comboBox_AuthDevices.SelectedItem as Device;
+                    if (await ADB.AuthorizeDevice(selectedDevice.ID))
+                    {
+                        ScanDevices();
+                    }
+                    else
+                    {
+                        ScanDevices();
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(_syncMonitor);
+                }
+            }
         }
 
         /// <summary>
@@ -315,51 +378,61 @@ namespace GoogleBackupManager
             }
         }
 
-        private void button_ConnectPairDevice_Click(object sender, RoutedEventArgs e)
+        private async void button_ConnectPairDevice_Click(object sender, RoutedEventArgs e)
         {
-            // Check valid data
-            if (IPAddress.TryParse(textBox_DeviceIp.Text, out _) && int.TryParse(textbox_DevicePort.Text, out _))
+            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
             {
-                bool result = false;
-
-                if ((bool)checkBox_Pairing.IsChecked)
+                try
                 {
-                    result = ADB.PairWirelessDevice(textBox_DeviceIp.Text, textbox_DevicePort.Text, textbox_DevicePairingCode.Text);
-                    if (result)
+                    // Check valid data
+                    if (IPAddress.TryParse(textBox_DeviceIp.Text, out _) && int.TryParse(textbox_DevicePort.Text, out _))
                     {
-                        // Erase data in all TextBoxes
-                        textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
-                        checkBox_Pairing.IsChecked = false;
-                        Utils.ShowMessageDialog("Pairing succed! It's now possible to connect to device.");
+                        bool result = false;
+
+                        if ((bool)checkBox_Pairing.IsChecked)
+                        {
+                            result = await ADB.PairWirelessDevice(textBox_DeviceIp.Text, textbox_DevicePort.Text, textbox_DevicePairingCode.Text);
+                            if (result)
+                            {
+                                // Erase data in all TextBoxes
+                                textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                                checkBox_Pairing.IsChecked = false;
+                                Utils.ShowMessageDialog("Pairing succed! It's now possible to connect to device.");
+                            }
+                            else
+                            {
+                                textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                                Utils.ShowMessageDialog("Pairing failed! Check inserted data and try again.");
+                            }
+                        }
+                        else
+                        {
+                            result = await ADB.ConnectWirelessDevice(textBox_DeviceIp.Text, textbox_DevicePort.Text);
+                            if (result)
+                            {
+                                // Erase data in all TextBoxes
+                                textBox_DeviceIp.Text = textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                                ScanDevices();
+                            }
+                            else
+                            {
+                                // Erase only port and device pairing code
+                                textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
+                                Utils.ShowMessageDialog("Connection failed! Try to pair device first.");
+                            }
+                        }
                     }
                     else
-                    {
-                        textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
-                        Utils.ShowMessageDialog("Pairing failed! Check inserted data and try again.");
-                    }
-                }
-                else
-                {
-                    result = ADB.ConnectWirelessDevice(textBox_DeviceIp.Text, textbox_DevicePort.Text);
-                    if (result)
                     {
                         // Erase data in all TextBoxes
                         textBox_DeviceIp.Text = textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
-                        ScanDevices();
-                    }
-                    else
-                    {
-                        // Erase only port and device pairing code
-                        textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
-                        Utils.ShowMessageDialog("Connection failed! Try to pair device first.");
+                        Utils.ShowMessageDialog("Please check inserted IP and port!");
                     }
                 }
-            }
-            else
-            {
-                // Erase data in all TextBoxes
-                textBox_DeviceIp.Text = textbox_DevicePort.Text = textbox_DevicePairingCode.Text = string.Empty;
-                Utils.ShowMessageDialog("Please check inserted IP and port!");
+                finally
+                {
+                    Monitor.Exit(_syncMonitor);
+                }
             }
         }
 
@@ -423,32 +496,34 @@ namespace GoogleBackupManager
             textBox_FilesToTransferPath.Text = Utils.SelectFolder();
         }
 
-        private void button_TransferFiles_Click(object sender, RoutedEventArgs e)
+        private async void button_TransferFiles_Click(object sender, RoutedEventArgs e)
         {
-            string selectedDir = textBox_FilesToTransferPath.Text;
-
-            if (Directory.Exists(selectedDir))
+            try
             {
-                if (Directory.GetFiles(selectedDir).Count() > 0 || Directory.GetDirectories(selectedDir).Count() > 0)
+                string selectedDir = textBox_FilesToTransferPath.Text;
+
+                int filesCount = Directory.GetFiles(selectedDir, "*", SearchOption.AllDirectories).Count();
+                if (Directory.Exists(selectedDir) && filesCount > 0)
                 {
+                    WriteToOutput("Copying files, please wait...\n");
+
                     Device destinationDevice = comboBox_TransferFilesDevice.SelectedItem as Device;
-                    if (ADB.TransferFiles(destinationDevice, $"{selectedDir}\\"))
-                    {
+                    var operationResult = await ADB.ExecutePushCommand(destinationDevice.ID, destinationDevice.DocumentFolder, $"{selectedDir}");
 
-                    }
-                    else
-                    {
-
-                    }
+                    WriteToOutput($"{operationResult.Item2}/{filesCount} files copied.", false, true, true);                   
                 }
                 else
                 {
-                    Utils.ShowMessageDialog("Selected folder is empty!");
+                    Utils.ShowMessageDialog("Selected folder not exists or is empty!");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                Utils.ShowMessageDialog("Please check selected folder!");
+                Utils.ShowMessageDialog(ex.Message);
+            }
+            finally
+            {
+                textBox_FilesToTransferPath.Text = string.Empty;
             }
         }
 
@@ -461,11 +536,29 @@ namespace GoogleBackupManager
         /// <summary>
         /// Handles backup operation.
         /// </summary>
-        private void button_StartBackup_Click(object sender, RoutedEventArgs e)
+        private async void button_StartBackup_Click(object sender, RoutedEventArgs e)
         {
-            var extractDevice = comboBox_ExtractDevice.SelectedItem as Device;
-            var backupDevice = comboBox_BackupDevice.SelectedItem as Device;
-            ADB.PerformBackup(extractDevice, backupDevice);
+            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            {
+                try
+                {
+                    var extractDevice = comboBox_ExtractDevice.SelectedItem as Device;
+                    var backupDevice = comboBox_BackupDevice.SelectedItem as Device;
+
+                    if (!extractDevice.Equals(backupDevice))
+                    {
+                        //await ADB.PerformBackup(extractDevice, backupDevice, (bool)checkBox_SaveFilesIntoPC.IsChecked);
+                    }
+                    else
+                    {
+                        Utils.ShowMessageDialog("Extract and backup device can't be the same!\nPlease choose different devices!");
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(_syncMonitor);
+                }
+            }
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -507,6 +600,20 @@ namespace GoogleBackupManager
 
             ADB.ConnectedDevices.Add(fakeDevice);
 
+            #region "Check if connected devices are enough to perform backup"
+
+            int authorizedDevicesCount = 0;
+            int unlimitedBackupDevicesCount = 0;
+            foreach (Device device in ADB.ConnectedDevices)
+            {
+                authorizedDevicesCount = device.IsAuthorized ? authorizedDevicesCount + 1 : authorizedDevicesCount;
+                unlimitedBackupDevicesCount = device.HasUnlimitedBackup ? unlimitedBackupDevicesCount + 1 : unlimitedBackupDevicesCount;
+            }
+
+            _isUnlimitedBackupAvailable = authorizedDevicesCount >= 2 && unlimitedBackupDevicesCount >= 1 ? true : false;
+
+            #endregion
+
             RefreshForm(true);
         }
 
@@ -521,6 +628,52 @@ namespace GoogleBackupManager
         }
 
         #endregion
+
+        ////////////////////////////////////////////////////////////////////////
+        //                                                                    //
+        //                           PRIVATE UTILITIES                        //
+        //                                                                    //
+        ////////////////////////////////////////////////////////////////////////
+
+        private async void ScanDevices_NoMonitor()
+        {
+            WriteToOutput("Scanning devices...", true, true);
+
+            try
+            {
+                await ADB.ScanDevices();
+                RefreshForm(false);
+            }
+            catch (PlatformToolsFolderException ex)
+            {
+                // What to do when platform tools folder is not found
+                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
+                Process.GetCurrentProcess().Kill();
+            }
+            catch (CommandPromptException ex)
+            {
+                // What to do when command prompt is not active anymore
+                Utils.ShowMessageDialog($"{ex.Message}\nAborting...");
+                Process.GetCurrentProcess().Kill();
+            }
+            catch (PlatformToolsProcessException ex)
+            {
+                // What to do when platform tools folder is not found
+                RefreshForm(false);
+                WriteToOutput($"{ex.Message}", true, false, false);
+            }
+            catch (Exception ex)
+            {
+                // What to do when there's a general error.
+                RefreshForm(false);
+                WriteToOutput($"{ex.Message}\nPlease try again.", true, false, false);
+            }
+        }
+
+        private Task RunOnUIThreadAsync(Action action)
+        {
+            return Application.Current.Dispatcher.InvokeAsync(action).Task;
+        }
 
     }
 }

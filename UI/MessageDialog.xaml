@@ -7,7 +7,8 @@
         mc:Ignorable="d"
         AllowsTransparency="True"
         Height="175"
-        Width="275"
+        ShowInTaskbar="False"
+        Width="300"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None">
 
@@ -25,24 +26,26 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Background="Gray"/>
+        <Border Background="Gray" />
 
-        <Border BorderBrush="Gray" BorderThickness="2" Grid.Row="1">
+        <Border BorderBrush="Gray"
+                BorderThickness="2"
+                Grid.Row="1">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="60*" />
                     <RowDefinition Height="40*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock FontFamily="Open Sans Bold"
+                <TextBlock FontFamily="Open Sans"
                            FontSize="12"
                            Foreground="Black"
                            Grid.Row="0"
                            HorizontalAlignment="Center"
+                           TextWrapping="Wrap"
                            VerticalAlignment="Center"
-                           Width="200"
-                           x:Name="textBlock_Message"
-                           TextWrapping="Wrap" />
+                           Width="220"
+                           x:Name="textBlock_Message" />
 
                 <Button Click="button_Ok_Click"
                         Content="OK"
@@ -55,6 +58,6 @@
 
             </Grid>
         </Border>
-        
+
     </Grid>
 </Window>

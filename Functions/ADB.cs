@@ -4,15 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.Xml.Linq;
-using System.Runtime.Remoting.Channels;
-using System.Threading;
-using System.Timers;
-using static GoogleBackupManager.Functions.Utils;
-using GoogleBackupManager.UI;
+using System.IO;
 
 namespace GoogleBackupManager.Functions
 {
@@ -20,11 +13,8 @@ namespace GoogleBackupManager.Functions
     {
         #region "Variables       
 
-        private static bool _isCommandPromptInitialized = false;
-        private static bool _isServerRunning = false;
-        private static Process _commandPromptProcess = new Process();
         private static List<Device> _connectedDevices = new List<Device>();
-        private static StringBuilder _rawOutput = new StringBuilder();
+        private static List<string> _rawOutput = new List<string>();
         private static List<string> _filteredOutput = new List<string>();
 
         #endregion
@@ -43,215 +33,152 @@ namespace GoogleBackupManager.Functions
         ////////////////////////////////////////////////////////////////////////
 
         /// <summary>
-        /// Initializes ADB connection:<br/>
-        /// <list type="number">
-        /// <item>Checks platform tools folder.</item>
-        /// <item>Initializes command prompt.</item>
-        /// <item>Start ADB server.</item>
-        /// </list>
+        /// Checks platform tools folder then starts adb server.
         /// </summary>
-        internal static void InitializeConnection()
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task InitializeConnection()
         {
             Utils.CheckPlatformToolsFolder();
-            InitializeCommandPrompt();
-            StartServer();
+            await StartServer();
+        }
+
+        /// <summary>
+        /// Closes ADB server.
+        /// </summary>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task CloseConnection()
+        {
+            await ExecuteCommand("adb kill-server");
         }
 
         /// <summary>
         /// Scans connected devices and populates <see cref="ConnectedDevices"/> list.
         /// </summary>
-        /// <returns>True if connected devices are enough to permit backup, otherwise false.</returns>
-        internal static bool ScanDevices()
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task ScanDevices()
         {
-            #region "Preliminary operations"
-
-            if (!_isCommandPromptInitialized)
+            try
             {
-                InitializeCommandPrompt();
-            }
+                // Clear previous devices
+                ConnectedDevices.Clear();
 
-            if (!_isServerRunning)
-            {
-                StartServer();
-            }
+                // Send request devices command
+                await ExecuteCommand("adb devices");
 
-            // Clear previous output
-            _filteredOutput.Clear();
-
-            // Clear previous devices
-            ConnectedDevices.Clear();
-
-            #endregion
-
-            // Send ADB devices request
-            SendCommand("adb devices");
-
-            if (_filteredOutput.Count() > 0)
-            {
-                // Remove line containig "List of devices attached"
-                _filteredOutput.RemoveAt(0);
-
-                // Check on remaining strings
-                if (_filteredOutput.Count > 0)
+                if (_filteredOutput.Count() > 0)
                 {
-                    try
+                    List<string> _filteredOutputCopy = new List<string>(_filteredOutput);
+
+                    foreach (string deviceLine in _filteredOutputCopy)
                     {
-                        // Copy devices from output
-                        List<string> deviceLines = new List<string>(_filteredOutput);
+                        bool addDevice = true;
 
-                        // Clear previous output
-                        _filteredOutput.Clear();
+                        #region "Get device info"
 
-                        foreach (string deviceLine in deviceLines)
+                        // Split device line into parts
+                        List<string> lineParts = deviceLine.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+                        // Get device identifier
+                        string deviceIdentifier = lineParts[0].Trim();
+
+                        // Get device authorization status
+                        bool deviceAuthorizationStatus = lineParts[1].Trim() == "device";
+
+                        // Get info about connection type
+                        bool deviceIsWirelessConnected = deviceIdentifier.Contains(":") || deviceIdentifier.Contains("adb");
+
+                        // Set default name
+                        string deviceName = $"Undefined - {deviceIdentifier}";
+
+                        // Set default unlimited backup status
+                        bool deviceHasUnlimitedBackup = false;
+
+                        // If device is authorized it's possible to get real device name
+                        if (deviceAuthorizationStatus)
                         {
-                            #region "Get device info"
+                            // Get device name
+                            await ExecuteCommand($"adb -s {deviceIdentifier} shell getprop ro.product.model");
 
-                            // Split device line into parts
-                            List<string> lineParts = deviceLine.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                            // If it's a valid name, assing it
+                            deviceName = _filteredOutput.Count > 0 ? _filteredOutput.Last() : deviceIdentifier;
 
-                            // Get device id
-                            string deviceIdentifier = lineParts[0].Trim();
-
-                            // Get device authorization status
-                            bool deviceAuthorizationStatus = lineParts[1].Trim() == "device";
-
-                            // Get info about connection type
-                            bool deviceIsWirelessConnected = deviceIdentifier.Contains(":") || deviceIdentifier.Contains("adb");
-
-                            // Set default name
-                            string deviceName = $"Undefined - {deviceIdentifier}";
-
-                            // Set default unlimited backup status
-                            bool deviceHasUnlimitedBackup = false;
-
-                            // If device is authorized it's possible to get real device name
-                            if (deviceAuthorizationStatus)
+                            foreach (Device connectedDevice in _connectedDevices)
                             {
-                                // Get device name
-                                SendCommand($"adb -s {deviceIdentifier} shell getprop ro.product.model");
-
-                                // If it's a valid name, assing it
-                                deviceName = _filteredOutput.Count > 0 ? _filteredOutput[0] : deviceIdentifier;
-
-                                // Check if there's already an existing device with same name
-                                foreach (Device connectedDevice in _connectedDevices)
+                                // If devices have same name but different identifier
+                                // Then they are different devices
+                                // So add identifier to their names
+                                if (connectedDevice.Name == deviceName && !connectedDevice.ID.Contains(deviceIdentifier))
                                 {
-                                    // If true, add id to their names
-                                    if (connectedDevice.Name == deviceName)
-                                    {
-                                        connectedDevice.Name = $"{connectedDevice.Name} - {connectedDevice.ID}";
-                                        deviceName = $"{deviceName} - {deviceIdentifier}";
-                                    }
+                                    connectedDevice.Name = $"{connectedDevice.Name} - {connectedDevice.ID}";
+                                    deviceName = $"{deviceName} - {deviceIdentifier}";
                                 }
 
-                                // With device real name, check if it has unlimited backup
-                                deviceHasUnlimitedBackup = Utils.UnlimitedBackupDevices.Any(unlimitedBackupDeviceName => deviceName.Contains(unlimitedBackupDeviceName));
-                                deviceHasUnlimitedBackup = deviceName.Equals(deviceIdentifier) ? true : deviceHasUnlimitedBackup;
+                                // If devices have same identifier
+                                // Then they are the same devices connected both via WiFi and USB
+                                // So keep the device with USB identifier
+                                if (connectedDevice.ID.Contains(deviceIdentifier) || connectedDevice.ID.Equals(deviceIdentifier))
+                                {
+                                    // Devices should not be added because it already exists
+                                    addDevice = false;
+                                    connectedDevice.ID = deviceIsWirelessConnected ? connectedDevice.ID : deviceIdentifier;
+                                }
                             }
 
-                            _connectedDevices.Add(new Device(deviceName, deviceIdentifier, deviceAuthorizationStatus, deviceHasUnlimitedBackup, deviceIsWirelessConnected));
+                            // With device real name, check if it has unlimited backup
+                            deviceHasUnlimitedBackup = Utils.UnlimitedBackupDevices.Any(unlimitedBackupDeviceName => deviceName.Contains(unlimitedBackupDeviceName));
+                        }
 
-                            #endregion
+                        #endregion
 
-                            // Clear previous output
-                            _filteredOutput.Clear();
+                        if (addDevice)
+                        {
+                            Device device = new Device(deviceName, deviceIdentifier, deviceAuthorizationStatus, deviceHasUnlimitedBackup, deviceIsWirelessConnected);
+                            _connectedDevices.Add(device);
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        // If something goes wrong
-
-                        // Clear previous output
-                        _filteredOutput.Clear();
-
-                        // Clear connected devices
-                        ADB.ConnectedDevices.Clear();
-
-                        throw ex;
-                    }
                 }
-
-                #region "Check if connected devices are enough to perform backup"
-
-                int authorizedDevicesCount = 0;
-                int unlimitedBackupDevicesCount = 0;
-                foreach (Device device in ADB.ConnectedDevices)
-                {
-                    authorizedDevicesCount = device.IsAuthorized ? authorizedDevicesCount + 1 : authorizedDevicesCount;
-                    unlimitedBackupDevicesCount = device.HasUnlimitedBackup ? unlimitedBackupDevicesCount + 1 : unlimitedBackupDevicesCount;
-                }
-
-                bool enoughDevices = authorizedDevicesCount >= 2 && unlimitedBackupDevicesCount >= 1 ? true : false;
-
-                #endregion
-
-                return enoughDevices;
             }
-            else
+            catch (Exception)
             {
-                throw new PlatformToolsTimeoutException("Error waiting for an ADB reply!\nTry to run again program.");
+                // Clear previous devices
+                ConnectedDevices.Clear();
+                throw;
             }
         }
 
         /// <summary>
-        /// Tries to authorize device with ID passed as parameter.
+        /// Tries to authorize device with parameter identifier.
         /// </summary>
         /// <param name="deviceIdentifier">Identifier of the device to be authorized.</param>
-        /// <returns>True if authorization succed, otherwise false.</returns>
-        internal static bool AuthorizeDevice(string deviceIdentifier)
+        /// <returns>True if device is authorized, otherwise false.</returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task<bool> AuthorizeDevice(string deviceIdentifier)
         {
-            bool isDeviceAuthorized = false;
+            // Restart server to permit to show popup on device
+            await ExecuteCommand("adb kill-server");
+            await StartServer();
 
-            for (int i = 1; i <= 3; i++)
-            {
-                if (isDeviceAuthorized)
-                {
-                    break;
-                }
+            // Show message waiting for authorization
+            Utils.ShowMessageDialog(
+                $"Please authorize this computer via the popup displayed on device screen (ID = {deviceIdentifier}), then click OK!"
+            );
 
-                // Restart server to permit to show popup on device
-                SendCommand("adb kill-server");
-                StartServer();
+            // Send devices command to check device new auth status
+            await ExecuteCommand("adb devices");
 
-                // Send devices command to show popup
-                SendCommand("adb devices", Utils.WAITING_TIME.SHORT_SCAN);
-
-                // Show message waiting for authorization
-                Utils.ShowMessageDialog(
-                    $"Please authorize this computer via the popup displayed on device screen (ID = {deviceIdentifier}), then click OK!\n" +
-                    $"Attempt {i}/3"
-                );
-
-                _filteredOutput.Clear();
-
-                // Send devices command to check device new auth status
-                SendCommand("adb devices");
-
-                // Output should contain only connected devices
-                // If output contains device id and "device" string it means it's authorized
-                if (_filteredOutput.Any(str => str.Contains(deviceIdentifier) && str.Contains("device")))
-                {
-                    isDeviceAuthorized = true;
-                }
-
-                // Clear output for next attempt
-                _filteredOutput.Clear();
-            }
-
-            return isDeviceAuthorized;
+            // Output should contain only connected devices
+            // If output contains device id and "device" string it means it's authorized
+            return _filteredOutput.Any(str => str.Contains(deviceIdentifier) && str.Contains("device"));
         }
 
         /// <summary>
         /// Connects to a device via wireless ADB.
         /// </summary>
         /// <returns>True if connection is successful, otherwise false.</returns>
-        internal static bool ConnectWirelessDevice(string deviceIp, string devicePort)
+        /// /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task<bool> ConnectWirelessDevice(string deviceIp, string devicePort)
         {
-            // Clear previous output
-            _filteredOutput.Clear();
-
-            // Send connection command
-            SendCommand($"adb connect {deviceIp}:{devicePort}");
+            await ExecuteCommand($"adb connect {deviceIp}:{devicePort}");
 
             if (_filteredOutput.Count > 0)
             {
@@ -279,20 +206,15 @@ namespace GoogleBackupManager.Functions
         /// Pair a device via wireless ADB.
         /// </summary>
         /// <returns>True if pairing is successful, otherwise false.</returns>
-        internal static bool PairWirelessDevice(string deviceIp, string devicePort, string devicePairingCode)
+        /// /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task<bool> PairWirelessDevice(string deviceIp, string devicePort, string devicePairingCode)
         {
-            _filteredOutput.Clear();
-
             // Send pairing command
-            SendCommand($"adb pair {deviceIp}:{devicePort}", Utils.WAITING_TIME.DEFAULT, devicePairingCode);
+            await ExecuteCommand($"adb pair {deviceIp}:{devicePort}", devicePairingCode);
 
             if (_filteredOutput.Count > 0)
             {
-                // Save output before clear it
-                string commandOutput = _filteredOutput.Last();
-                _filteredOutput.Clear();
-
-                if (!string.IsNullOrWhiteSpace(commandOutput) && commandOutput.Contains("Enter"))
+                if (!string.IsNullOrWhiteSpace(_filteredOutput.Last()) && _filteredOutput.Last().Contains("paired"))
                 {
                     return true;
                 }
@@ -308,83 +230,217 @@ namespace GoogleBackupManager.Functions
         }
 
         /// <summary>
-        /// Performs backup operations.
+        /// Executes a push command in ADB command prompt.
         /// </summary>
-        /// <param name="extractDevice">The device to make backup from.</param>
-        /// <param name="backupDevice">The device to make backup from.</param>
-        /// <returns>True if operation is successful, otherwise false.</returns>
-        internal static bool PerformBackup(Device extractDevice, Device backupDevice)
+        /// <returns>A tuple, where:
+        /// <list type="number">
+        /// <item>Item 1 is true if all files are pushed, otherwise false.</item>
+        /// <item>Item 2 is pushed files count.</item>
+        /// </list>
+        /// </returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        /// <exception cref="PlatformToolsTransferException"></exception>
+        internal static async Task<Tuple<bool, int>> ExecutePushCommand(string destinationDeviceIdentifier, string destinationDeviceFolder, string sourceFolderPath)
         {
-            bool result = false;
+            _filteredOutput.Clear();
 
-            CreateProgramFolders();
+            int skippedFiles = 0;
 
-            return result;
-        }
+            // Add backslash to path in order to work with ADB command prompt
+            sourceFolderPath += "\\";
 
-        /// <summary>
-        /// Transfer files from folder to device according to passed parameters.
-        /// </summary>
-        /// <returns>True if operation is done, otherwise false.</returns>
-        internal static bool TransferFiles(Device destinationDevice, string filesToTransferPath)
-        {
-            try
+            // Count total files in parent and children directories to be transferred
+            var totalFilesCount = Directory.GetFiles(sourceFolderPath, "*", SearchOption.AllDirectories).Length;
+
+            // Transfer files
+            string command = $"adb -s {destinationDeviceIdentifier} push {sourceFolderPath} {destinationDeviceFolder}";
+
+            using (Process _adbProcess = new Process())
             {
-                // Clear previous output
-                _filteredOutput.Clear();
+                _adbProcess.StartInfo.CreateNoWindow = true;
+                _adbProcess.StartInfo.FileName = "cmd.exe";
+                _adbProcess.StartInfo.RedirectStandardInput = true;
+                _adbProcess.StartInfo.RedirectStandardOutput = true;
+                _adbProcess.StartInfo.RedirectStandardError = true;
+                _adbProcess.StartInfo.UseShellExecute = false;
+                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
 
-                if (_isCommandPromptInitialized)
+                // Add event to read received output data
+                _adbProcess.OutputDataReceived += (sender, e) =>
                 {
-                    if (!_commandPromptProcess.HasExited)
+                    if (!string.IsNullOrWhiteSpace(e.Data))
                     {
-                        WaitingDialog waitingDialog = new WaitingDialog("Transferring files, please wait...");
-                        waitingDialog.Show();
-
-                        string commandString = $"for %%i in (%{filesToTransferPath}%) do adb -s {destinationDevice.ID} push %%i /storage/emulated/0/Documents/";
-
-                        // Write command
-                        _commandPromptProcess.StandardInput.WriteLine(commandString);
-                        _commandPromptProcess.StandardInput.Flush();
-
-                        // Wait for response
-                        Task.Delay((int)Utils.WAITING_TIME.DEFAULT).Wait();
-
-                        // Loop checks percentage in output
-                        // Building file list means wait
-                        // [%] != 99 or 100 means still in progress
-                        while (_filteredOutput.Contains("Building") || !_filteredOutput.Contains("[98") || !_filteredOutput.Contains("[99") || !_filteredOutput.Contains("[100"))
-                        {
-                            
-                        }
-
-                        waitingDialog.Close();
-
-                        return true;
+                        _rawOutput.Add(e.Data);
                     }
-                    else
+                };
+
+                // Add event to read received errors
+                _adbProcess.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
                     {
-                        throw new CommandPromptException("Command prompt process is not active anymore!");
+                        _rawOutput.Add(e.Data);
+
+                        // Exclude sent commands
+                        if (e.Data.Contains("pushed") && e.Data.Contains("skipped"))
+                        {
+                            _filteredOutput.Add(e.Data);
+                        }
+                    }
+                };
+
+                // Start process
+                _adbProcess.Start();
+                _adbProcess.StandardInput.WriteLine("echo off");
+                _adbProcess.BeginOutputReadLine();
+                _adbProcess.BeginErrorReadLine();
+
+                // Send parameter command
+                _adbProcess.StandardInput.WriteLine(command);
+                _adbProcess.StandardInput.Flush();
+
+                // Wait operation to be completed asynchronously
+                while (!_filteredOutput.Count.Equals(1))
+                {
+                    await Task.Delay(50);
+
+#if DEBUG
+                    Debug.WriteLine("Transfer in progress...");
+#endif
+                }
+
+                #region "Check copied files count"
+
+                var lastLine = _filteredOutput.Last();
+
+                if (lastLine.Contains("pushed"))
+                {
+                    const string START_PATTERN = ", ";
+                    int start = lastLine.IndexOf(START_PATTERN) + START_PATTERN.Length;
+
+                    const string END_PATTERN = " skipped";
+                    int end = lastLine.IndexOf(END_PATTERN);
+
+                    string skippedFilesString = lastLine.Substring(start, end - start);
+                    if (!int.TryParse(skippedFilesString, out skippedFiles))
+                    {
+                        throw new PlatformToolsTransferException("ExecuteCommand(): Error parsing transferred files count.");
                     }
                 }
                 else
                 {
-                    return false;
+                    throw new PlatformToolsTransferException("ExecuteCommand(): Error reading output last line.");
                 }
-            }
-            catch (Exception)
-            {
-                return false;
+
+                #endregion
+
+                // Send exit command
+                _adbProcess.StandardInput.WriteLine("exit");
+
+                // Waiting process exit
+                await Task.Run(() => _adbProcess.WaitForExit());
+
+                // Return according to process exit code
+                if (!_adbProcess.ExitCode.Equals(0))
+                {
+                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1.");
+                }
+                else
+                {
+                    int copiedFiles = totalFilesCount - skippedFiles;
+                    var resultTuple = new Tuple<bool, int>(totalFilesCount == copiedFiles, copiedFiles);
+                    return resultTuple;
+                }
             }
         }
 
-        /// <summary>
-        /// Handles connection closing.
-        /// </summary>
-        internal static void CloseConnection()
+        internal static async Task<Tuple<bool, int>> ExecutePullCommand(Device device)
         {
-            SendCommand("adb kill-server");
-            _commandPromptProcess.Close();
+            ExecutePullCommand();
         }
+
+        ///// <summary>
+        ///// Performs backup operations.
+        ///// </summary>
+        ///// <param name="extractDevice">The device to make backup from.</param>
+        ///// <param name="backupDevice">The device to make backup from.</param>
+        ///// <returns>True if operation is successful, otherwise false.</returns>
+        //internal static async Task<bool> PerformBackup(Device extractDevice, Device backupDevice, bool saveLocally = false)
+        //{
+        //    async Task ExecuteADBCommandAsync(string command)
+        //    {
+        //        // Invia il comando al processo
+        //        await Task.Run(() =>
+        //        {
+        //            _commandPromptProcess.StandardInput.WriteLine(command);
+        //            _commandPromptProcess.StandardInput.Flush();
+        //            _commandPromptProcess.StandardInput.WriteLine("exit");
+        //        });
+
+        //        // Attendi che il processo termini
+        //        await Task.Run(() => _commandPromptProcess.WaitForExit());
+
+        //        // Gestisci il risultato finale
+        //        if (_commandPromptProcess.ExitCode != 0)
+        //        {
+        //            throw new Exception($"ADB command failed: {_rawOutput.ToString()}");
+        //        }
+
+        //        Console.WriteLine("Command executed successfully.");
+        //        // Puoi usare _filteredOutput per analizzare l'output
+        //    }
+
+        //    bool result = false;
+
+        //    if (saveLocally)
+        //    {
+        //        Utils.CreateProgramFolders(extractDevice, backupDevice);
+
+        //        try
+        //        {
+        //            // Pull della cartella dal dispositivo con id1
+        //            string pullCommand = $"adb -s {extractDevice.ID} pull /storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Databases {Utils.ProgramFolders.ExtractDeviceDirectory}";
+        //            //string pullCommand = $"adb -s {extractDevice.ID} pull /storage/emulated/0/DCIM/Camera {Utils.ProgramFolders.ExtractDeviceDirectory}";
+        //            await ExecuteADBCommandAsync(pullCommand);
+
+        //            // Sincronizza i file dal locale al remoto sul dispositivo con id2
+        //            //string syncPushCommand = $"-s {id2} sync {localFolderPath} {remoteFolderPath}";
+        //            //await ExecuteADBCommandAsync(syncPushCommand); // Esecuzione asincrona
+
+        //            Console.WriteLine("Operazione completata con successo.");
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Console.WriteLine($"Errore: {ex.Message}");
+        //        }
+        //    }
+        //    else
+        //    {
+
+
+        //        // Pull files from extract device directly into backup device
+        //        // Only files that doesn't exist
+
+        //        //try
+        //        //{
+        //        //    // Pull della cartella dal dispositivo con id1
+        //        //    string pullCommand = $"-s {extractDevice.ID} pull /storage/emulated/0/Documents/DCIM {localFolderPath}";
+        //        //    await ExecuteADBCommandAsync(pullCommand);
+
+        //        //    // Sincronizza i file dal locale al remoto sul dispositivo con id2
+        //        //    string syncPushCommand = $"-s {id2} sync {localFolderPath} {remoteFolderPath}";
+        //        //    await ExecuteADBCommandAsync(syncPushCommand); // Esecuzione asincrona
+
+        //        //    Console.WriteLine("Operazione completata con successo.");
+        //        //}
+        //        //catch (Exception ex)
+        //        //{
+        //        //    Console.WriteLine($"Errore: {ex.Message}");
+        //        //}
+        //    }
+
+        //    return result;
+        //}
 
         ////////////////////////////////////////////////////////////////////////
         //                                                                    //
@@ -393,135 +449,212 @@ namespace GoogleBackupManager.Functions
         ////////////////////////////////////////////////////////////////////////
 
         /// <summary>
-        /// Initializes command prompt process in PlatformTools folder.
-        /// </summary>
-        private static void InitializeCommandPrompt()
-        {
-            _commandPromptProcess.StartInfo.CreateNoWindow = true;
-            _commandPromptProcess.StartInfo.FileName = "cmd.exe";
-            _commandPromptProcess.StartInfo.RedirectStandardInput = true;
-            _commandPromptProcess.StartInfo.RedirectStandardOutput = true;
-            _commandPromptProcess.StartInfo.RedirectStandardError = true;
-            _commandPromptProcess.StartInfo.UseShellExecute = false;
-            _commandPromptProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
-
-            // Add event to read received output data
-            // Exclude command sent by user
-            _commandPromptProcess.OutputDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(e.Data))
-                {
-                    if (!e.Data.Contains("adb "))
-                    {
-                        _filteredOutput.Add(e.Data);
-                    }
-                    _rawOutput.AppendLine(e.Data);
-                }
-            };
-
-            // Add event to read received errors
-            _commandPromptProcess.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(e.Data))
-                {
-                    _rawOutput.AppendLine(e.Data);
-                }
-            };
-
-            // Start process
-            _commandPromptProcess.Start();
-            _commandPromptProcess.BeginOutputReadLine();
-            _commandPromptProcess.BeginErrorReadLine();
-
-            _isCommandPromptInitialized = true;
-        }
-
-        /// <summary>
         /// Starts ADB server.
         /// </summary>
-        private static void StartServer()
+        /// <returns></returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        private static async Task StartServer()
         {
-            SendCommand("adb start-server");
-            _isServerRunning = true;
-            _filteredOutput.Clear();
+            await ExecuteCommand("adb start-server");
         }
 
         /// <summary>
-        /// Executes a command then waits a time according to sent command.<br/>
-        /// If response parameter is specified, replies with its value.
+        /// Executes a command in ADB command prompt.
         /// </summary>
-        private static void SendCommand(string commandString, Utils.WAITING_TIME waitingTime = Utils.WAITING_TIME.DEFAULT, string responseString = null)
+        /// <param name="command">Command to be executed.</param>
+        /// <param name="response">Response to be given.</param>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        private static async Task ExecuteCommand(string command, string response = null)
         {
-            #region "Calculate waiting time"
+            _filteredOutput.Clear();
 
-            if (string.IsNullOrWhiteSpace(responseString))
+            using (Process _adbProcess = new Process())
             {
-                // If a response is not needed and waiting time is not specified, set it according to sent command
-                if (waitingTime.Equals(Utils.WAITING_TIME.DEFAULT))
+                _adbProcess.StartInfo.CreateNoWindow = true;
+                _adbProcess.StartInfo.FileName = "cmd.exe";
+                _adbProcess.StartInfo.RedirectStandardInput = true;
+                _adbProcess.StartInfo.RedirectStandardOutput = true;
+                _adbProcess.StartInfo.RedirectStandardError = true;
+                _adbProcess.StartInfo.UseShellExecute = false;
+                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
+
+                // Add event to read received output data
+                _adbProcess.OutputDataReceived += (sender, e) =>
                 {
-                    if (commandString.Contains("devices"))
+                    if (!string.IsNullOrWhiteSpace(e.Data))
                     {
-                        waitingTime = Utils.WAITING_TIME.LONG_SCAN;
+                        _rawOutput.Add(e.Data);
+
+                        // Exclude sent commands
+                        if (!e.Data.Contains("adb ") && !e.Data.Contains("attached") && !e.Data.Contains("Microsoft") && !e.Data.Contains("PlatformTools") && !e.Data.Contains("exit"))
+                        {
+                            _filteredOutput.Add(e.Data);
+                        }
                     }
-                    else if (commandString.Contains("start-server"))
+                };
+
+                // Start process
+                _adbProcess.Start();
+                _adbProcess.StandardInput.WriteLine("echo off");
+                _adbProcess.BeginOutputReadLine();
+                _adbProcess.BeginErrorReadLine();
+
+                // Wait for command to be executed
+                await Task.Run(async () =>
+                {
+                    // Send parameter command
+                    _adbProcess.StandardInput.WriteLine(command);
+                    _adbProcess.StandardInput.Flush();
+
+                    // Wait operation to be completed
+                    await Task.Delay(Utils.CalculateWaitingTime(command));
+
+                    if (response != null)
                     {
-                        waitingTime = Utils.WAITING_TIME.START_SERVER;
+                        _adbProcess.StandardInput.WriteLine(response);
+                        _adbProcess.StandardInput.Flush();
+
+                        await Task.Delay(Utils.CalculateWaitingTime(command));
                     }
-                    else if (commandString.Contains("ro.product.model"))
-                    {
-                        waitingTime = Utils.WAITING_TIME.GET_NAME;
-                    }
+
+                    // Send exit command
+                    _adbProcess.StandardInput.WriteLine("exit");
+                });
+
+                // Waiting process exit
+                await Task.Run(() => _adbProcess.WaitForExit());
+
+                // Return according to process exit code
+                if (!_adbProcess.ExitCode.Equals(0))
+                {
+                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1");
                 }
             }
-            else
-            {
-                // If a response is needed, set waiting to default value
-                waitingTime = Utils.WAITING_TIME.DEFAULT;
-            }
+        }
 
-            #endregion
+        /// <summary>
+        /// Executes a pull command in ADB command prompt.
+        /// </summary>
+        /// <returns>A tuple, where:
+        /// <list type="number">
+        /// <item>Item 1 is true if all files are pulled, otherwise false.</item>
+        /// <item>Item 2 is pulled files count.</item>
+        /// </list>
+        /// </returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        /// <exception cref="PlatformToolsTransferException"></exception>
+        private static async Task<Tuple<bool, int>> ExecutePullCommand(string sourceDeviceIdentifier, string sourceDeviceFolder, string destinationFolderPath)
+        {
+            _filteredOutput.Clear();
 
-            if (_isCommandPromptInitialized)
+            int skippedFiles = 0;
+
+            // Add backslash to the destination path to work with the ADB command prompt
+            destinationFolderPath += "\\";
+
+            // Count total files in the parent and child directories for transfer
+            var totalFilesCount = Directory.GetFiles(destinationFolderPath, "*", SearchOption.AllDirectories).Length;
+
+            // Command to transfer files
+            string command = $"adb -s {sourceDeviceIdentifier} pull {sourceDeviceFolder} {destinationFolderPath}";
+
+            using (Process _adbProcess = new Process())
             {
-                if (!_commandPromptProcess.HasExited)
+                _adbProcess.StartInfo.CreateNoWindow = true;
+                _adbProcess.StartInfo.FileName = "cmd.exe";
+                _adbProcess.StartInfo.RedirectStandardInput = true;
+                _adbProcess.StartInfo.RedirectStandardOutput = true;
+                _adbProcess.StartInfo.RedirectStandardError = true;
+                _adbProcess.StartInfo.UseShellExecute = false;
+                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
+
+                // Add an event to read received output data
+                _adbProcess.OutputDataReceived += (sender, e) =>
                 {
-                    // Write command
-                    _commandPromptProcess.StandardInput.WriteLine(commandString);
-                    _commandPromptProcess.StandardInput.Flush();
-
-                    if (!string.IsNullOrWhiteSpace(responseString))
+                    if (!string.IsNullOrWhiteSpace(e.Data))
                     {
-                        // Write response
-                        _commandPromptProcess.StandardInput.WriteLine(responseString);
-                        _commandPromptProcess.StandardInput.Flush();
+                        _rawOutput.Add(e.Data);
                     }
+                };
 
-                    // Wait for response
-                    Task.Delay((int)waitingTime).Wait();
+                // Add an event to read received errors
+                _adbProcess.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        _rawOutput.Add(e.Data);
+
+                        // Filter output data
+                        if (e.Data.Contains("pulled") && e.Data.Contains("skipped"))
+                        {
+                            _filteredOutput.Add(e.Data);
+                        }
+                    }
+                };
+
+                // Start the process
+                _adbProcess.Start();
+                _adbProcess.StandardInput.WriteLine("echo off");
+                _adbProcess.BeginOutputReadLine();
+                _adbProcess.BeginErrorReadLine();
+
+                // Send command with specified parameters
+                _adbProcess.StandardInput.WriteLine(command);
+                _adbProcess.StandardInput.Flush();
+
+                // Wait asynchronously for the operation to complete
+                while (!_filteredOutput.Count.Equals(1))
+                {
+                    await Task.Delay(50);
+
+#if DEBUG
+                    Debug.WriteLine("Transfer in progress...");
+#endif
+                }
+
+                #region "Check copied files count"
+
+                var lastLine = _filteredOutput.Last();
+
+                if (lastLine.Contains("pulled"))
+                {
+                    const string START_PATTERN = ", ";
+                    int start = lastLine.IndexOf(START_PATTERN) + START_PATTERN.Length;
+
+                    const string END_PATTERN = " skipped";
+                    int end = lastLine.IndexOf(END_PATTERN);
+
+                    string skippedFilesString = lastLine.Substring(start, end - start);
+                    if (!int.TryParse(skippedFilesString, out skippedFiles))
+                    {
+                        throw new PlatformToolsTransferException("ExecutePullCommand(): Error parsing transferred files count.");
+                    }
                 }
                 else
                 {
-                    throw new CommandPromptException("Command prompt process is not active anymore!");
+                    throw new PlatformToolsTransferException("ExecutePullCommand(): Error reading output last line.");
+                }
+
+                #endregion
+
+                // Send exit command
+                _adbProcess.StandardInput.WriteLine("exit");
+
+                // Wait for process to exit
+                await Task.Run(() => _adbProcess.WaitForExit());
+
+                // Return based on process exit code
+                if (!_adbProcess.ExitCode.Equals(0))
+                {
+                    throw new PlatformToolsProcessException("ExecutePullCommand(): Process exit code 1.");
+                }
+                else
+                {
+                    int copiedFiles = totalFilesCount - skippedFiles;
+                    var resultTuple = new Tuple<bool, int>(totalFilesCount == copiedFiles, copiedFiles);
+                    return resultTuple;
                 }
             }
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        //                                                                    //
-        //                               UTILITIES                            //
-        //                                                                    //
-        ////////////////////////////////////////////////////////////////////////
-
-        private static void CreateProgramFolders()
-        {
-            //_programFilesFolder = $"{_currentDirectory}\\Program files";
-
-            //if (!Directory.Exists(_programFilesFolder))
-            //{
-            //    Directory.CreateDirectory(_programFilesFolder);
-            //}
-
-            //_unlimitedDeviceFolder = $"{_programFilesFolder}\\";
         }
 
     }

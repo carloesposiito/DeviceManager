@@ -5,9 +5,9 @@ namespace GoogleBackupManager.Model.Exceptions
     /// <summary>
     /// Exception thrown when platform tools folder is not found.
     /// </summary>
-    internal class PlatformToolsException : Exception
+    internal class PlatformToolsFolderException : Exception
     {
-        internal PlatformToolsException(string message) : base(message) { }
+        internal PlatformToolsFolderException(string message) : base(message) { }
     }
 
     /// <summary>
@@ -21,8 +21,16 @@ namespace GoogleBackupManager.Model.Exceptions
     /// <summary>
     /// Exception thrown when passed platform tools timeout.
     /// </summary>
-    internal class PlatformToolsTimeoutException : Exception
+    internal class PlatformToolsProcessException : Exception
     {
-        public PlatformToolsTimeoutException(string message) : base(message) { }
+        public PlatformToolsProcessException(string message) : base(message) { }
+    }
+
+    /// <summary>
+    /// Exception thrown when passed platform tools timeout.
+    /// </summary>
+    internal class PlatformToolsTransferException : Exception
+    {
+        public PlatformToolsTransferException(string message) : base(message) { }
     }
 }
