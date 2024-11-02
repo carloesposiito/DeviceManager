@@ -11,14 +11,6 @@ namespace GoogleBackupManager.Model.Exceptions
     }
 
     /// <summary>
-    /// Exception thrown when command prompt is not active anymore.
-    /// </summary>
-    internal class CommandPromptException : Exception
-    {
-        internal CommandPromptException(string message) : base(message) { }
-    }
-
-    /// <summary>
     /// Exception thrown when passed platform tools timeout.
     /// </summary>
     internal class PlatformToolsProcessException : Exception
@@ -33,4 +25,13 @@ namespace GoogleBackupManager.Model.Exceptions
     {
         public PlatformToolsTransferException(string message) : base(message) { }
     }
+
+    /// <summary>
+    /// Exception thrown when command prompt is not active anymore.
+    /// </summary>
+    internal class CommandPromptException : Exception
+    {
+        internal CommandPromptException(string message) : base(message) { }
+    }
+
 }

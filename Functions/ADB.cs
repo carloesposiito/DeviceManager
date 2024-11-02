@@ -230,30 +230,96 @@ namespace GoogleBackupManager.Functions
         }
 
         /// <summary>
+        /// Executes a command in ADB command prompt.
+        /// </summary>
+        /// <param name="command">Command to be executed.</param>
+        /// <param name="response">Response to be given.</param>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task ExecuteCommand(string command, string response = null)
+        {
+            _filteredOutput.Clear();
+
+            using (Process _adbProcess = new Process())
+            {
+                _adbProcess.StartInfo.CreateNoWindow = true;
+                _adbProcess.StartInfo.FileName = "cmd.exe";
+                _adbProcess.StartInfo.RedirectStandardInput = true;
+                _adbProcess.StartInfo.RedirectStandardOutput = true;
+                _adbProcess.StartInfo.RedirectStandardError = true;
+                _adbProcess.StartInfo.UseShellExecute = false;
+                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
+
+                // Add event to read received output data
+                _adbProcess.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        _rawOutput.Add(e.Data);
+
+                        // Exclude sent commands
+                        if (!e.Data.Contains("adb ") && !e.Data.Contains("attached") && !e.Data.Contains("Microsoft") && !e.Data.Contains("PlatformTools") && !e.Data.Contains("exit"))
+                        {
+                            _filteredOutput.Add(e.Data);
+                        }
+                    }
+                };
+
+                // Start process
+                _adbProcess.Start();
+                _adbProcess.StandardInput.WriteLine("echo off");
+                _adbProcess.BeginOutputReadLine();
+                _adbProcess.BeginErrorReadLine();
+
+                // Wait for command to be executed
+                await Task.Run(async () =>
+                {
+                    // Send parameter command
+                    _adbProcess.StandardInput.WriteLine(command);
+                    _adbProcess.StandardInput.Flush();
+
+                    // Wait operation to be completed
+                    await Task.Delay(Utils.CalculateWaitingTime(command));
+
+                    if (response != null)
+                    {
+                        _adbProcess.StandardInput.WriteLine(response);
+                        _adbProcess.StandardInput.Flush();
+
+                        await Task.Delay(Utils.CalculateWaitingTime(command));
+                    }
+
+                    // Send exit command
+                    _adbProcess.StandardInput.WriteLine("exit");
+                });
+
+                // Waiting process exit
+                await Task.Run(() => _adbProcess.WaitForExit());
+
+                // Return according to process exit code
+                if (!_adbProcess.ExitCode.Equals(0))
+                {
+                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1");
+                }
+            }
+        }
+
+        /// <summary>
         /// Executes a push command in ADB command prompt.
         /// </summary>
-        /// <returns>A tuple, where:
-        /// <list type="number">
-        /// <item>Item 1 is true if all files are pushed, otherwise false.</item>
-        /// <item>Item 2 is pushed files count.</item>
-        /// </list>
-        /// </returns>
+        /// <returns>Pushed files count.</returns>
         /// <exception cref="PlatformToolsProcessException"></exception>
         /// <exception cref="PlatformToolsTransferException"></exception>
-        internal static async Task<Tuple<bool, int>> ExecutePushCommand(string destinationDeviceIdentifier, string destinationDeviceFolder, string sourceFolderPath)
+        internal static async Task<int> ExecutePushCommand(string destinationDeviceIdentifier, string destinationDeviceFolder, string sourceFolderPath)
         {
             _filteredOutput.Clear();
 
             int skippedFiles = 0;
 
-            // Add backslash to path in order to work with ADB command prompt
-            sourceFolderPath += "\\";
-
             // Count total files in parent and children directories to be transferred
             var totalFilesCount = Directory.GetFiles(sourceFolderPath, "*", SearchOption.AllDirectories).Length;
 
             // Transfer files
-            string command = $"adb -s {destinationDeviceIdentifier} push {sourceFolderPath} {destinationDeviceFolder}";
+            string command = $"adb -s {destinationDeviceIdentifier} push \"{sourceFolderPath}\" \"{destinationDeviceFolder}\"";
 
             using (Process _adbProcess = new Process())
             {
@@ -347,16 +413,29 @@ namespace GoogleBackupManager.Functions
                 }
                 else
                 {
-                    int copiedFiles = totalFilesCount - skippedFiles;
-                    var resultTuple = new Tuple<bool, int>(totalFilesCount == copiedFiles, copiedFiles);
-                    return resultTuple;
+                    return totalFilesCount - skippedFiles;
                 }
             }
         }
 
-        internal static async Task<Tuple<bool, int>> ExecutePullCommand(Device device)
+        /// <summary>
+        /// Executes a pull command in ADB command prompt.
+        /// </summary>
+        /// <returns>Pulled files count.</returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        /// <exception cref="PlatformToolsTransferException"></exception>
+        internal static async Task<int> ExecutePullCommand(Device sourceDevice, List<string> sourceDeviceFolders)
         {
-            ExecutePullCommand();
+            int totalFilesCount = 0;
+
+            Utils.CreateProgramFolders(sourceDevice);
+
+            foreach (string sourceDeviceFolder in sourceDeviceFolders)
+            {
+                totalFilesCount += await ExecutePullCommand(sourceDevice.ID, sourceDeviceFolder);
+            }
+            
+            return totalFilesCount;
         }
 
         ///// <summary>
@@ -448,6 +527,12 @@ namespace GoogleBackupManager.Functions
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
+
+
+
+
+
+
         /// <summary>
         /// Starts ADB server.
         /// </summary>
@@ -458,105 +543,28 @@ namespace GoogleBackupManager.Functions
             await ExecuteCommand("adb start-server");
         }
 
-        /// <summary>
-        /// Executes a command in ADB command prompt.
-        /// </summary>
-        /// <param name="command">Command to be executed.</param>
-        /// <param name="response">Response to be given.</param>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        private static async Task ExecuteCommand(string command, string response = null)
-        {
-            _filteredOutput.Clear();
-
-            using (Process _adbProcess = new Process())
-            {
-                _adbProcess.StartInfo.CreateNoWindow = true;
-                _adbProcess.StartInfo.FileName = "cmd.exe";
-                _adbProcess.StartInfo.RedirectStandardInput = true;
-                _adbProcess.StartInfo.RedirectStandardOutput = true;
-                _adbProcess.StartInfo.RedirectStandardError = true;
-                _adbProcess.StartInfo.UseShellExecute = false;
-                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
-
-                // Add event to read received output data
-                _adbProcess.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(e.Data))
-                    {
-                        _rawOutput.Add(e.Data);
-
-                        // Exclude sent commands
-                        if (!e.Data.Contains("adb ") && !e.Data.Contains("attached") && !e.Data.Contains("Microsoft") && !e.Data.Contains("PlatformTools") && !e.Data.Contains("exit"))
-                        {
-                            _filteredOutput.Add(e.Data);
-                        }
-                    }
-                };
-
-                // Start process
-                _adbProcess.Start();
-                _adbProcess.StandardInput.WriteLine("echo off");
-                _adbProcess.BeginOutputReadLine();
-                _adbProcess.BeginErrorReadLine();
-
-                // Wait for command to be executed
-                await Task.Run(async () =>
-                {
-                    // Send parameter command
-                    _adbProcess.StandardInput.WriteLine(command);
-                    _adbProcess.StandardInput.Flush();
-
-                    // Wait operation to be completed
-                    await Task.Delay(Utils.CalculateWaitingTime(command));
-
-                    if (response != null)
-                    {
-                        _adbProcess.StandardInput.WriteLine(response);
-                        _adbProcess.StandardInput.Flush();
-
-                        await Task.Delay(Utils.CalculateWaitingTime(command));
-                    }
-
-                    // Send exit command
-                    _adbProcess.StandardInput.WriteLine("exit");
-                });
-
-                // Waiting process exit
-                await Task.Run(() => _adbProcess.WaitForExit());
-
-                // Return according to process exit code
-                if (!_adbProcess.ExitCode.Equals(0))
-                {
-                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1");
-                }
-            }
-        }
+       
 
         /// <summary>
         /// Executes a pull command in ADB command prompt.
         /// </summary>
-        /// <returns>A tuple, where:
-        /// <list type="number">
-        /// <item>Item 1 is true if all files are pulled, otherwise false.</item>
-        /// <item>Item 2 is pulled files count.</item>
-        /// </list>
-        /// </returns>
+        /// <returns>Pulled files count.</returns>
         /// <exception cref="PlatformToolsProcessException"></exception>
         /// <exception cref="PlatformToolsTransferException"></exception>
-        private static async Task<Tuple<bool, int>> ExecutePullCommand(string sourceDeviceIdentifier, string sourceDeviceFolder, string destinationFolderPath)
+        private static async Task<int> ExecutePullCommand(string sourceDeviceIdentifier, string sourceDeviceFolder)
         {
             _filteredOutput.Clear();
 
-            int skippedFiles = 0;
+            // Determine destination folder
+            const string START_PATTERN_1 = "/0/";
+            int start_1 = sourceDeviceFolder.IndexOf("/0/") + START_PATTERN_1.Length;
+            string localDestinationFolderPath = $"{Utils.ProgramFolders.ExtractDeviceDirectory}";
 
-            // Add backslash to the destination path to work with the ADB command prompt
-            destinationFolderPath += "\\";
-
-            // Count total files in the parent and child directories for transfer
-            var totalFilesCount = Directory.GetFiles(destinationFolderPath, "*", SearchOption.AllDirectories).Length;
+            // Create it if doesn't exists
+            Directory.CreateDirectory(localDestinationFolderPath);           
 
             // Command to transfer files
-            string command = $"adb -s {sourceDeviceIdentifier} pull {sourceDeviceFolder} {destinationFolderPath}";
+            string command = $"adb -s {sourceDeviceIdentifier} pull \"{sourceDeviceFolder}\" \"{localDestinationFolderPath}\"";
 
             using (Process _adbProcess = new Process())
             {
@@ -608,26 +616,34 @@ namespace GoogleBackupManager.Functions
                     await Task.Delay(50);
 
 #if DEBUG
-                    Debug.WriteLine("Transfer in progress...");
+                    Debug.WriteLine("Extracting in progress...");
 #endif
                 }
 
                 #region "Check copied files count"
 
+                int pulledFiles = 0;
+                int skippedFiles = 0;
                 var lastLine = _filteredOutput.Last();
 
                 if (lastLine.Contains("pulled"))
                 {
-                    const string START_PATTERN = ", ";
-                    int start = lastLine.IndexOf(START_PATTERN) + START_PATTERN.Length;
+                    // Extract pulled files count
+                    const string START_PATTERN_2 = ": ";
+                    const string END_PATTERN_2 = " files";
+                    int start_2 = lastLine.IndexOf(START_PATTERN_2) + START_PATTERN_2.Length;
+                    int end_2 = lastLine.IndexOf(END_PATTERN_2);
+                    string pulledFilesString = lastLine.Substring(start_2, end_2 - start_2);
 
-                    const string END_PATTERN = " skipped";
-                    int end = lastLine.IndexOf(END_PATTERN);
+                    const string START_PATTERN_3 = ", ";
+                    const string END_PATTERN_3 = " skipped";
+                    int start_3 = lastLine.IndexOf(START_PATTERN_3) + START_PATTERN_3.Length;
+                    int end_3 = lastLine.IndexOf(END_PATTERN_3);
+                    string skippedFilesString = lastLine.Substring(start_3, end_3 - start_3);
 
-                    string skippedFilesString = lastLine.Substring(start, end - start);
-                    if (!int.TryParse(skippedFilesString, out skippedFiles))
+                    if (!int.TryParse(pulledFilesString, out pulledFiles) && !int.TryParse(skippedFilesString, out skippedFiles))
                     {
-                        throw new PlatformToolsTransferException("ExecutePullCommand(): Error parsing transferred files count.");
+                        throw new PlatformToolsTransferException("ExecutePullCommand(): Error parsing pulled files count.");
                     }
                 }
                 else
@@ -650,9 +666,7 @@ namespace GoogleBackupManager.Functions
                 }
                 else
                 {
-                    int copiedFiles = totalFilesCount - skippedFiles;
-                    var resultTuple = new Tuple<bool, int>(totalFilesCount == copiedFiles, copiedFiles);
-                    return resultTuple;
+                    return pulledFiles - skippedFiles;
                 }
             }
         }

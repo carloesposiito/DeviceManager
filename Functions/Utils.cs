@@ -27,17 +27,9 @@ namespace GoogleBackupManager.Functions
         };
 
         /// <summary>
-        /// Holds all different waiting times.
+        /// Calculates waiting time according to sent command.
         /// </summary>
-        internal enum WAITING_TIME
-        {
-            DEFAULT = 500,
-            LONG_SCAN = 7500,
-            SHORT_SCAN = 2500,
-            GET_NAME = 750,
-            START_SERVER = 3500
-        }
-
+        /// <returns>Waiting time in milliseconds.</returns>
         internal static int CalculateWaitingTime(string command)
         {
             if (command.Equals("start-server"))
@@ -63,29 +55,6 @@ namespace GoogleBackupManager.Functions
         }
 
         /// <summary>
-        /// Holds all folder that program needs to work.
-        /// </summary>
-        internal static class ProgramFolders
-        {
-            private static string _currentDirectory;
-            private static string _platformToolsDirectory;
-            private static string _unlimitedBackupDirectory;
-            private static string _extractDeviceDirectory;
-            private static string _backupDeviceDirectory;
-
-            #region "Getters and setters"
-
-            internal static string CurrentDirectory { get => _currentDirectory; set => _currentDirectory = value; }
-            internal static string PlatformToolsDirectory { get => _platformToolsDirectory; set => _platformToolsDirectory = value; }
-
-            internal static string UnlimitedBackupDirectory { get => _unlimitedBackupDirectory; set => _unlimitedBackupDirectory = value; }
-            internal static string ExtractDeviceDirectory { get => _backupDeviceDirectory; set => _backupDeviceDirectory = value; }
-            internal static string BackupDeviceDirectory { get => _extractDeviceDirectory; set => _extractDeviceDirectory = value; }
-
-            #endregion
-        }
-
-        /// <summary>
         /// Show a dialog with parameter message.
         /// </summary>
         internal static void ShowMessageDialog(string message)
@@ -101,7 +70,6 @@ namespace GoogleBackupManager.Functions
         /// <returns>Selected folder path.</returns>
         internal static string SelectFolder()
         {
-            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
             using (var dialog = new FolderBrowserDialog())
             {
                 dialog.Description = "Select files folder";
@@ -119,6 +87,38 @@ namespace GoogleBackupManager.Functions
         }
 
         /// <summary>
+        /// Holds all folder that program needs to work.
+        /// </summary>
+        internal static class ProgramFolders
+        {
+            private static string _currentDirectory;
+            private static string _platformToolsDirectory;
+            private static string _extractDirectory;
+            private static string _extractDeviceDirectory;
+
+            private static string _unlimitedBackupDirectory;
+            
+            private static string _backupDeviceDirectory;
+
+            
+
+            #region "Getters and setters"
+
+            internal static string CurrentDirectory { get => _currentDirectory; set => _currentDirectory = value; }
+            internal static string PlatformToolsDirectory { get => _platformToolsDirectory; set => _platformToolsDirectory = value; }
+            internal static string ExtractDirectory { get => _extractDirectory; set => _extractDirectory = value; }
+            internal static string ExtractDeviceDirectory { get => _backupDeviceDirectory; set => _backupDeviceDirectory = value; }
+
+            internal static string UnlimitedBackupDirectory { get => _unlimitedBackupDirectory; set => _unlimitedBackupDirectory = value; }
+
+
+            
+            internal static string BackupDeviceDirectory { get => _extractDeviceDirectory; set => _extractDeviceDirectory = value; }
+
+            #endregion
+        }
+
+        /// <summary>
         /// Checks platform tools folder.
         /// </summary>
         /// <exception cref="PlatformToolsFolderException">Thrown if check fails.</exception>
@@ -128,40 +128,23 @@ namespace GoogleBackupManager.Functions
             ProgramFolders.PlatformToolsDirectory = $"{ProgramFolders.CurrentDirectory}\\PlatformTools";
             string platformToolsArchive = $"{ProgramFolders.CurrentDirectory}\\Resources\\PlatformTools.zip";
 
-            // Check platform tools zip existing
-            if (File.Exists(platformToolsArchive))
+            // If platform tools doesn't exist and archive yes then extract it
+            if (!Directory.Exists(ProgramFolders.PlatformToolsDirectory))
             {
-                // If platform tools folder exists delete it and create a new one
-                if (Directory.Exists(ProgramFolders.PlatformToolsDirectory))
+                if (File.Exists(platformToolsArchive))
                 {
-                    try
+                    Directory.CreateDirectory(ProgramFolders.PlatformToolsDirectory);
+
+                    // Unzip platform tools archive into platform tools folders
+                    if (!UnzipArchive(platformToolsArchive, ProgramFolders.PlatformToolsDirectory))
                     {
-                        Directory.Delete(ProgramFolders.PlatformToolsDirectory, true);
-                    }
-                    catch (Exception)
-                    {
-                        if (KillOldPlatformToolsProcess())
-                        {
-                            Directory.Delete(ProgramFolders.PlatformToolsDirectory, true);
-                        }
-                        else
-                        {
-                            throw new PlatformToolsFolderException("And old ADB process is still running!\nPlease close it manually or restart computer.");
-                        }
+                        throw new PlatformToolsFolderException("Error while extracting platform tools archive!");
                     }
                 }
-
-                Directory.CreateDirectory(ProgramFolders.PlatformToolsDirectory);
-
-                // Unzip platform tools archive into platform tools folders
-                if (!Utils.UnzipArchive(platformToolsArchive, ProgramFolders.PlatformToolsDirectory))
+                else
                 {
-                    throw new PlatformToolsFolderException("Error while extracting platform tools archive!");
+                    throw new PlatformToolsFolderException("PlatformTools archive not found!");
                 }
-            }
-            else
-            {
-                throw new PlatformToolsFolderException("PlatformTools archive not found!");
             }
         }
 
@@ -183,38 +166,35 @@ namespace GoogleBackupManager.Functions
         }
 
         /// <summary>
-        /// 
+        /// Creates folder needed to perform unlimited backup operations.
         /// </summary>
-        /// <returns></returns>
-        private static bool KillOldPlatformToolsProcess()
+        internal static void CreateProgramFolders(Device extractDevice)
         {
-            try
+            // Create extract parent folder
+            ProgramFolders.ExtractDirectory = $"{ProgramFolders.CurrentDirectory}\\Extracted";
+            
+            if (!Directory.Exists(ProgramFolders.ExtractDirectory))
             {
-                var processStartInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/c adb kill-server",
-                    WorkingDirectory = ProgramFolders.PlatformToolsDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using (var process = new Process())
-                {
-                    process.StartInfo = processStartInfo;
-                    process.Start();
-                    process.WaitForExit();
-                }
-
-                return true;
+                Directory.CreateDirectory(ProgramFolders.ExtractDirectory);
             }
-            catch (Exception)
+
+            // Inside it create directory for extract device
+            ProgramFolders.ExtractDeviceDirectory = $"{ProgramFolders.ExtractDirectory}\\ID{extractDevice.Name.Replace(" ", "_")}_DT{extractDevice.ID}_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}";
+
+            if (!Directory.Exists(ProgramFolders.ExtractDeviceDirectory))
             {
-                return false;
+                Directory.CreateDirectory(ProgramFolders.ExtractDeviceDirectory);
             }
         }
+
+
+
+
+
+
+
+
+
 
         /// <summary>
         /// Creates folder needed to perform unlimited backup operations.
