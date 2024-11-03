@@ -35,6 +35,7 @@ namespace GoogleBackupManager.Functions
         /// <summary>
         /// Checks platform tools folder then starts adb server.
         /// </summary>
+        /// <exception cref="PlatformToolsFolderException"></exception>
         /// <exception cref="PlatformToolsProcessException"></exception>
         internal static async Task InitializeConnection()
         {
@@ -226,80 +227,6 @@ namespace GoogleBackupManager.Functions
             else
             {
                 return false;
-            }
-        }
-
-        /// <summary>
-        /// Executes a command in ADB command prompt.
-        /// </summary>
-        /// <param name="command">Command to be executed.</param>
-        /// <param name="response">Response to be given.</param>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task ExecuteCommand(string command, string response = null)
-        {
-            _filteredOutput.Clear();
-
-            using (Process _adbProcess = new Process())
-            {
-                _adbProcess.StartInfo.CreateNoWindow = true;
-                _adbProcess.StartInfo.FileName = "cmd.exe";
-                _adbProcess.StartInfo.RedirectStandardInput = true;
-                _adbProcess.StartInfo.RedirectStandardOutput = true;
-                _adbProcess.StartInfo.RedirectStandardError = true;
-                _adbProcess.StartInfo.UseShellExecute = false;
-                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
-
-                // Add event to read received output data
-                _adbProcess.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(e.Data))
-                    {
-                        _rawOutput.Add(e.Data);
-
-                        // Exclude sent commands
-                        if (!e.Data.Contains("adb ") && !e.Data.Contains("attached") && !e.Data.Contains("Microsoft") && !e.Data.Contains("PlatformTools") && !e.Data.Contains("exit"))
-                        {
-                            _filteredOutput.Add(e.Data);
-                        }
-                    }
-                };
-
-                // Start process
-                _adbProcess.Start();
-                _adbProcess.StandardInput.WriteLine("echo off");
-                _adbProcess.BeginOutputReadLine();
-                _adbProcess.BeginErrorReadLine();
-
-                // Wait for command to be executed
-                await Task.Run(async () =>
-                {
-                    // Send parameter command
-                    _adbProcess.StandardInput.WriteLine(command);
-                    _adbProcess.StandardInput.Flush();
-
-                    // Wait operation to be completed
-                    await Task.Delay(Utils.CalculateWaitingTime(command));
-
-                    if (response != null)
-                    {
-                        _adbProcess.StandardInput.WriteLine(response);
-                        _adbProcess.StandardInput.Flush();
-
-                        await Task.Delay(Utils.CalculateWaitingTime(command));
-                    }
-
-                    // Send exit command
-                    _adbProcess.StandardInput.WriteLine("exit");
-                });
-
-                // Waiting process exit
-                await Task.Run(() => _adbProcess.WaitForExit());
-
-                // Return according to process exit code
-                if (!_adbProcess.ExitCode.Equals(0))
-                {
-                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1");
-                }
             }
         }
 
@@ -526,6 +453,80 @@ namespace GoogleBackupManager.Functions
         //                                COMMANDS                            //
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        /// Executes a command in ADB command prompt.
+        /// </summary>
+        /// <param name="command">Command to be executed.</param>
+        /// <param name="response">Response to be given.</param>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        private static async Task ExecuteCommand(string command, string response = null)
+        {
+            _filteredOutput.Clear();
+
+            using (Process _adbProcess = new Process())
+            {
+                _adbProcess.StartInfo.CreateNoWindow = true;
+                _adbProcess.StartInfo.FileName = "cmd.exe";
+                _adbProcess.StartInfo.RedirectStandardInput = true;
+                _adbProcess.StartInfo.RedirectStandardOutput = true;
+                _adbProcess.StartInfo.RedirectStandardError = true;
+                _adbProcess.StartInfo.UseShellExecute = false;
+                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
+
+                // Add event to read received output data
+                _adbProcess.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        _rawOutput.Add(e.Data);
+
+                        // Exclude sent commands
+                        if (!e.Data.Contains("adb ") && !e.Data.Contains("attached") && !e.Data.Contains("Microsoft") && !e.Data.Contains("PlatformTools") && !e.Data.Contains("exit"))
+                        {
+                            _filteredOutput.Add(e.Data);
+                        }
+                    }
+                };
+
+                // Start process
+                _adbProcess.Start();
+                _adbProcess.StandardInput.WriteLine("echo off");
+                _adbProcess.BeginOutputReadLine();
+                _adbProcess.BeginErrorReadLine();
+
+                // Wait for command to be executed
+                await Task.Run(async () =>
+                {
+                    // Send parameter command
+                    _adbProcess.StandardInput.WriteLine(command);
+                    _adbProcess.StandardInput.Flush();
+
+                    // Wait operation to be completed
+                    await Task.Delay(Utils.CalculateWaitingTime(command));
+
+                    if (response != null)
+                    {
+                        _adbProcess.StandardInput.WriteLine(response);
+                        _adbProcess.StandardInput.Flush();
+
+                        await Task.Delay(Utils.CalculateWaitingTime(command));
+                    }
+
+                    // Send exit command
+                    _adbProcess.StandardInput.WriteLine("exit");
+                });
+
+                // Waiting process exit
+                await Task.Run(() => _adbProcess.WaitForExit());
+
+                // Return according to process exit code
+                if (!_adbProcess.ExitCode.Equals(0))
+                {
+                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1");
+                }
+            }
+        }
 
         /// <summary>
         /// Starts ADB server.

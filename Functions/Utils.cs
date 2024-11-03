@@ -3,11 +3,8 @@ using GoogleBackupManager.Model.Exceptions;
 using GoogleBackupManager.UI;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.IO.Compression;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace GoogleBackupManager.Functions
@@ -95,25 +92,17 @@ namespace GoogleBackupManager.Functions
             private static string _platformToolsDirectory;
             private static string _extractDirectory;
             private static string _extractDeviceDirectory;
-
+            private static string _backupDeviceDirectory;
             private static string _unlimitedBackupDirectory;
             
-            private static string _backupDeviceDirectory;
-
-            
-
             #region "Getters and setters"
 
             internal static string CurrentDirectory { get => _currentDirectory; set => _currentDirectory = value; }
             internal static string PlatformToolsDirectory { get => _platformToolsDirectory; set => _platformToolsDirectory = value; }
             internal static string ExtractDirectory { get => _extractDirectory; set => _extractDirectory = value; }
             internal static string ExtractDeviceDirectory { get => _backupDeviceDirectory; set => _backupDeviceDirectory = value; }
-
-            internal static string UnlimitedBackupDirectory { get => _unlimitedBackupDirectory; set => _unlimitedBackupDirectory = value; }
-
-
-            
             internal static string BackupDeviceDirectory { get => _extractDeviceDirectory; set => _extractDeviceDirectory = value; }
+            internal static string UnlimitedBackupDirectory { get => _unlimitedBackupDirectory; set => _unlimitedBackupDirectory = value; }
 
             #endregion
         }
@@ -186,15 +175,6 @@ namespace GoogleBackupManager.Functions
                 Directory.CreateDirectory(ProgramFolders.ExtractDeviceDirectory);
             }
         }
-
-
-
-
-
-
-
-
-
 
         /// <summary>
         /// Creates folder needed to perform unlimited backup operations.

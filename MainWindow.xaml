@@ -3,14 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:GoogleBackupManager"
         mc:Ignorable="d"
         AllowsTransparency="True"
         d:Height="900"
         Height="530"
         Loaded="Window_Loaded"
-        d:Visibility="Visible"
         ShowInTaskbar="False"
+        d:Visibility="Visible"
         Visibility="Collapsed"
         Width="730"
         WindowStartupLocation="CenterScreen"
@@ -72,11 +71,13 @@
 
                                 <!--Scan row-->
                                 <GroupBox Header="Devices"
-                                          Style="{StaticResource groupBox_Common}">
+                                          Style="{StaticResource groupBox_Common}"
+                                          x:Name="groupBox_ScanDevices">
                                     <Button Content="Scan"
                                             Grid.Row="0"
                                             Style="{StaticResource button_Common}"
-                                            Click="button_ScanDevices_Click" />
+                                            Click="button_ScanDevices_Click"
+                                            x:Name="button_ScanDevices" />
                                 </GroupBox>
 
                                 <!--Auth row-->
@@ -95,18 +96,19 @@
                                                   Grid.Column="0"
                                                   x:Name="comboBox_AuthDevices" />
 
-                                        <Button Content="Authorize"
-                                                Grid.Column="1"
-                                                Style="{StaticResource button_Common}"
-                                                x:Name="button_AuthorizeDevice"
-                                                Click="button_AuthorizeDevice_Click" />
+                                        <Button  Click="button_AuthorizeDevice_Click"
+                                                 Content="Authorize"
+                                                 Grid.Column="1"
+                                                 Style="{StaticResource button_Common}"
+                                                 x:Name="button_AuthorizeDevice" />
                                     </Grid>
                                 </GroupBox>
 
                                 <!--WiFi devices row-->
                                 <GroupBox Grid.Row="2"
                                           Header="WiFi"
-                                          Style="{StaticResource groupBox_Common}">
+                                          Style="{StaticResource groupBox_Common}"
+                                          x:Name="groupBox_ConnectPairDevice">
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -202,7 +204,7 @@
                                         <ComboBox Grid.Row="1"
                                                   DisplayMemberPath="Name"
                                                   Style="{StaticResource comboBox_Common}"
-                                                  x:Name="comboBox_SelectAppsDevice" />
+                                                  x:Name="comboBox_UninstallAppsDevice" />
 
                                         <Label Content="Third party apps:"
                                                Grid.Row="2"
@@ -311,7 +313,7 @@
                                             <ComboBox Grid.Row="1"
                                                       DisplayMemberPath="Name"
                                                       Style="{StaticResource comboBox_Common}"
-                                                      x:Name="comboBox_SelectFilesDevice" />
+                                                      x:Name="comboBox_ExtractFilesDevice" />
 
                                             <Grid Grid.Row="2"
                                                   x:Name="grid_ExtractCheckBoxes">
@@ -333,49 +335,49 @@
                                                           Grid.Column="0"
                                                           Grid.Row="0"
                                                           Style="{StaticResource checkBox_ExtractRestoreFiles}"
-                                                          x:Name="checkBox_Alarms"/>
+                                                          x:Name="checkBox_Alarms" />
 
                                                 <!--DCIM-->
                                                 <CheckBox Content="DCIM"
                                                           Grid.Column="0"
                                                           Grid.Row="1"
                                                           Style="{StaticResource checkBox_ExtractRestoreFiles}"
-                                                          x:Name="checkBox_DCIM"/>
+                                                          x:Name="checkBox_DCIM" />
 
                                                 <!--Documents-->
                                                 <CheckBox Content="Documents"
                                                           Grid.Column="0"
                                                           Grid.Row="2"
                                                           Style="{StaticResource checkBox_ExtractRestoreFiles}"
-                                                          x:Name="checkBox_Documents"/>
+                                                          x:Name="checkBox_Documents" />
 
                                                 <!--Downloads-->
                                                 <CheckBox Content="Downloads"
                                                           Grid.Column="0"
                                                           Grid.Row="3"
                                                           Style="{StaticResource checkBox_ExtractRestoreFiles}"
-                                                          x:Name="checkBox_Downloads"/>
+                                                          x:Name="checkBox_Downloads" />
 
                                                 <!--Music-->
                                                 <CheckBox Content="Music"
                                                           Grid.Column="0"
                                                           Grid.Row="4"
                                                           Style="{StaticResource checkBox_ExtractRestoreFiles}"
-                                                          x:Name="checkBox_Music"/>
+                                                          x:Name="checkBox_Music" />
 
                                                 <!--Pictures-->
                                                 <CheckBox Content="Pictures"
                                                           Grid.Column="0"
                                                           Grid.Row="5"
-                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}" 
-                                                          x:Name="checkBox_Pictures"/>
+                                                          Style="{StaticResource checkBox_ExtractRestoreFiles}"
+                                                          x:Name="checkBox_Pictures" />
 
                                                 <!--Ringtones-->
                                                 <CheckBox Content="Ringtones"
                                                           Grid.Column="1"
                                                           Grid.Row="0"
                                                           Style="{StaticResource checkBox_ExtractRestoreFiles}"
-                                                          x:Name="checkBox_Ringtones"/>
+                                                          x:Name="checkBox_Ringtones" />
 
                                                 <CheckBox Content="WhatsApp [Backups]"
                                                           Grid.Column="1"
@@ -459,7 +461,8 @@
                                                     <ColumnDefinition Width="30*" />
                                                 </Grid.ColumnDefinitions>
 
-                                                <TextBox Grid.Column="0"
+                                                <TextBox IsEnabled="False"
+                                                         Grid.Column="0"
                                                          Style="{StaticResource textBox_Input}"
                                                          x:Name="textBox_FilesToTransferPath" />
 
@@ -517,7 +520,7 @@
                                         <ComboBox Grid.Row="3"
                                                   DisplayMemberPath="Name"
                                                   Style="{StaticResource comboBox_Common}"
-                                                  x:Name="comboBox_BackupDevice" />
+                                                  x:Name="comboBox_UnlimitedBackupDevice" />
 
                                         <CheckBox Content="Save files into pc"
                                                   Grid.Row="4"
