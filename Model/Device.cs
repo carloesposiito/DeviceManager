@@ -12,6 +12,7 @@
 
         private string alarmsFolderPath = "/storage/emulated/0/Alarms/";
         private string dcimFolderPath = "/storage/emulated/0/DCIM/";
+        private string cameraFolderPath = "/storage/emulated/0/DCIM/Camera/";
         private string documentsFolderPath = "/storage/emulated/0/Documents/";
         private string downloadsFolderPath = "/storage/emulated/0/Download/";
         private string musicFolderPath = "/storage/emulated/0/Music/";
@@ -44,6 +45,7 @@
         public string WhatsAppDatabasesFolderPath { get => whatsAppDatabasesFolderPath; set => whatsAppDatabasesFolderPath = value; }
         public string WhatsAppMediaFolderPath { get => whatsAppMediaFolderPath; set => whatsAppMediaFolderPath = value; }
         public string WhatsAppFolderPath { get => whatsAppFolderPath; set => whatsAppFolderPath = value; }
+        public string CameraFolderPath { get => cameraFolderPath; set => cameraFolderPath = value; }
 
         #endregion
 

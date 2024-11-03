@@ -94,7 +94,8 @@ namespace GoogleBackupManager.Functions
             private static string _extractDeviceDirectory;
             private static string _backupDeviceDirectory;
             private static string _unlimitedBackupDirectory;
-            
+            private static string _unlimitedBackupDeviceDirectory;
+
             #region "Getters and setters"
 
             internal static string CurrentDirectory { get => _currentDirectory; set => _currentDirectory = value; }
@@ -103,6 +104,7 @@ namespace GoogleBackupManager.Functions
             internal static string ExtractDeviceDirectory { get => _backupDeviceDirectory; set => _backupDeviceDirectory = value; }
             internal static string BackupDeviceDirectory { get => _extractDeviceDirectory; set => _extractDeviceDirectory = value; }
             internal static string UnlimitedBackupDirectory { get => _unlimitedBackupDirectory; set => _unlimitedBackupDirectory = value; }
+            public static string UnlimitedBackupDeviceDirectory { get => _unlimitedBackupDeviceDirectory; set => _unlimitedBackupDeviceDirectory = value; }
 
             #endregion
         }
@@ -187,22 +189,14 @@ namespace GoogleBackupManager.Functions
         /// <summary>
         /// Creates folder needed to perform unlimited backup operations.
         /// </summary>
-        internal static void CreateProgramFolders(Device extractDevice, Device backupDevice)
+        internal static void CreateUnlimitedBackupProgramFolders(Device extractDevice)
         {
             // Inside it create directory for extract device
-            ProgramFolders.ExtractDeviceDirectory = $"{ProgramFolders.UnlimitedBackupDirectory}\\{extractDevice.Name.Replace(" ", "_")}_{extractDevice.ID}\\DCIM_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}";
+            ProgramFolders.UnlimitedBackupDeviceDirectory = $"{ProgramFolders.UnlimitedBackupDirectory}\\{extractDevice.Name.Replace(" ", "")}_[{extractDevice.ID}]";
 
-            if (!Directory.Exists(ProgramFolders.ExtractDeviceDirectory))
+            if (!Directory.Exists(ProgramFolders.UnlimitedBackupDeviceDirectory))
             {
-                Directory.CreateDirectory(ProgramFolders.ExtractDeviceDirectory);
-            }
-
-            // Inside it create directory for backup device
-            ProgramFolders.BackupDeviceDirectory = $"{ProgramFolders.UnlimitedBackupDirectory}\\{backupDevice.Name.Replace(" ", "_")}_{backupDevice.ID}\\DCIM_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}";
-
-            if (!Directory.Exists(ProgramFolders.BackupDeviceDirectory))
-            {
-                Directory.CreateDirectory(ProgramFolders.BackupDeviceDirectory);
+                Directory.CreateDirectory(ProgramFolders.UnlimitedBackupDeviceDirectory);
             }
         }
     }

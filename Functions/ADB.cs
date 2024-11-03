@@ -351,15 +351,22 @@ namespace GoogleBackupManager.Functions
         /// <returns>Pulled files count.</returns>
         /// <exception cref="PlatformToolsProcessException"></exception>
         /// <exception cref="PlatformToolsTransferException"></exception>
-        internal static async Task<int> ExecutePullCommand(Device sourceDevice, List<string> sourceDeviceFolders)
+        internal static async Task<int> ExecutePullCommand(Device sourceDevice, List<string> sourceDeviceFolders, bool unlimitedBackupProcess = false)
         {
             int totalFilesCount = 0;
 
-            Utils.CreateProgramFolders(sourceDevice);
+            if (unlimitedBackupProcess)
+            {
+                Utils.CreateUnlimitedBackupProgramFolders(sourceDevice);
+            }
+            else
+            {
+                Utils.CreateProgramFolders(sourceDevice);
+            }
 
             foreach (string sourceDeviceFolder in sourceDeviceFolders)
             {
-                totalFilesCount += await ExecutePullCommand(sourceDevice.ID, sourceDeviceFolder);
+                totalFilesCount += await ExecutePullCommand(sourceDevice.ID, sourceDeviceFolder, unlimitedBackupProcess);
             }
 
             return totalFilesCount;
@@ -544,7 +551,7 @@ namespace GoogleBackupManager.Functions
         /// <returns>Pulled files count.</returns>
         /// <exception cref="PlatformToolsProcessException"></exception>
         /// <exception cref="PlatformToolsTransferException"></exception>
-        private static async Task<int> ExecutePullCommand(string sourceDeviceIdentifier, string sourceDeviceFolder)
+        private static async Task<int> ExecutePullCommand(string sourceDeviceIdentifier, string sourceDeviceFolder, bool unlimitedBackupProcess = false)
         {
             _filteredOutput.Clear();
 
@@ -558,7 +565,18 @@ namespace GoogleBackupManager.Functions
 
             splittedSourceDeviceFolder.RemoveAt(splittedSourceDeviceFolder.Count() - 1);
             string destinationPath = string.Join("/", splittedSourceDeviceFolder);
-            string localDestinationFolderPath = Path.Combine(Utils.ProgramFolders.ExtractDeviceDirectory, destinationPath).Replace('\\', '/');
+
+            string localDestinationFolderPath = string.Empty;
+            
+            // If it's a unlimited backup process, set right folders
+            if (unlimitedBackupProcess)
+            {
+                localDestinationFolderPath = Path.Combine(Utils.ProgramFolders.UnlimitedBackupDeviceDirectory, destinationPath).Replace('\\', '/');
+            }
+            else
+            {
+                localDestinationFolderPath = Path.Combine(Utils.ProgramFolders.ExtractDeviceDirectory, destinationPath).Replace('\\', '/');
+            }
 
             Directory.CreateDirectory(localDestinationFolderPath);
 

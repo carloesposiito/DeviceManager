@@ -11,6 +11,7 @@ using System.IO;
 using System.Windows.Controls;
 using System.Threading;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GoogleBackupManager
 {
@@ -132,8 +133,11 @@ namespace GoogleBackupManager
                         // Add to apps combo
                         comboBox_UninstallAppsDevice.Items.Add(device);
 
-                        // Add to files combo
-                        comboBox_ExtractRestoreFilesDevice.Items.Add(device);
+                        // Add to extract files combo
+                        comboBox_ExtractFilesDevice.Items.Add(device);
+
+                        // Add to restore files combo
+                        comboBox_RestoreFilesDevice.Items.Add(device);
 
                         // Add to transfer files combo
                         comboBox_TransferFilesDevice.Items.Add(device);
@@ -142,7 +146,7 @@ namespace GoogleBackupManager
                         comboBox_ScrcpyDevice.Items.Add(device);
 
                         // Set selected element to first index
-                        comboBox_UninstallAppsDevice.SelectedIndex = comboBox_ExtractRestoreFilesDevice.SelectedIndex = comboBox_TransferFilesDevice.SelectedIndex = comboBox_ScrcpyDevice.SelectedIndex = 0;
+                        comboBox_UninstallAppsDevice.SelectedIndex = comboBox_ExtractFilesDevice.SelectedIndex = comboBox_RestoreFilesDevice.SelectedIndex = comboBox_TransferFilesDevice.SelectedIndex = comboBox_ScrcpyDevice.SelectedIndex = 0;
                     }
 
                     // Add to unlimited backup device combo only if a Pixel
@@ -190,7 +194,9 @@ namespace GoogleBackupManager
                 {
                     if (!_isUnlimitedBackupAvailable)
                     {
-                        WriteToOutput("Unlimited backup tab disabled.", false, true, false);
+                        string message = comboBox_ExtractDevice.Items.Count > 0 ? "Connect at least two different devices!" : "Not found a device with unlimited backup!";
+
+                        WriteToOutput($"Unlimited backup tab disabled.\n{message}", false, true, false);
                     }
                 }
 
@@ -218,20 +224,22 @@ namespace GoogleBackupManager
         private void RefreshExtractedFolders()
         {
             _extractedDirs = Directory.GetDirectories(Utils.ProgramFolders.ExtractDirectory).ToList();
-            comboBox_RestoreFilesDevice.Items.Clear();
+            comboBox_RestoredFiles.Items.Clear();
 
             if (_extractedDirs.Count() > 0)
             {
                 foreach (string dir in _extractedDirs)
                 {
                     const string PATTERN = "\\Extracted\\";
-                    comboBox_RestoreFilesDevice.Items.Add(dir.Substring(dir.IndexOf(PATTERN) + PATTERN.Length));
-                    comboBox_RestoreFilesDevice.SelectedIndex = 0;
+                    comboBox_RestoredFiles.Items.Add(dir.Substring(dir.IndexOf(PATTERN) + PATTERN.Length));
+                    comboBox_RestoredFiles.SelectedIndex = 0;
                 };
+
+                groupBox_RestoreFolders.IsEnabled = true;
             }
             else
             {
-                button_Restore.IsEnabled = comboBox_RestoreFilesDevice.IsEnabled = false;
+                groupBox_RestoreFolders.IsEnabled = false;
             }
         }
 
@@ -245,9 +253,10 @@ namespace GoogleBackupManager
             comboBox_ExtractDevice.Items.Clear();
             comboBox_AuthDevices.Items.Clear();
             comboBox_UninstallAppsDevice.Items.Clear();
-            comboBox_ExtractRestoreFilesDevice.Items.Clear();
+            comboBox_ExtractFilesDevice.Items.Clear();
             comboBox_ScrcpyDevice.Items.Clear();
             comboBox_TransferFilesDevice.Items.Clear();
+            comboBox_RestoreFilesDevice.Items.Clear();
 
             // Disable unlimited backup, apps, files and utils tabs
 #if DEBUG
@@ -501,7 +510,7 @@ namespace GoogleBackupManager
                     WriteToOutput("Extracting files, please wait...", false, false, false);
 
                     // Get selected source device
-                    Device sourceDevice = comboBox_ExtractRestoreFilesDevice.SelectedItem as Device;
+                    Device sourceDevice = comboBox_ExtractFilesDevice.SelectedItem as Device;
 
                     // Populate folder to be extracted list according to selected checkboxes
                     List<string> foldersToBeExtracted = new List<string>();
@@ -612,36 +621,13 @@ namespace GoogleBackupManager
                         WriteToOutput("Restoring files, please wait...", false, false, false);
 
                         // Get selected destination device
-                        Device destinationDevice = comboBox_ExtractRestoreFilesDevice.SelectedItem as Device;
+                        Device destinationDevice = comboBox_RestoreFilesDevice.SelectedItem as Device;
 
-                        string selectedFolder = comboBox_RestoreFilesDevice.SelectedItem as string;
+                        string selectedFolder = comboBox_RestoredFiles.SelectedItem as string;
                         string selectedFolderPath = _extractedDirs.Where(dir => dir.Contains(selectedFolder)).First();
 
                         int filesCount = Directory.GetFiles(selectedFolderPath, "*", SearchOption.AllDirectories).Count();
-
-                        // If it's a restoring operation, a trick is needed:
-                        // Rename folder to be pushed to 0, so it can be pushed to device storage folder
-
-                        #region "Rename"
-
-                        List<string> splittedSelectedFolderPath = selectedFolderPath.Split('\\').ToList();
-
-                        // Replace last part with 0
-                        string lastPart = splittedSelectedFolderPath.Last();
-                        splittedSelectedFolderPath.Remove(lastPart);
-                        splittedSelectedFolderPath.Add("0");
-
-                        // Build new folder path
-                        string renamedSelectedFolderPath = string.Join("\\", splittedSelectedFolderPath);
-
-                        Directory.Move(selectedFolderPath, renamedSelectedFolderPath);
-
-                        #endregion
-
-                        int restoredFilesCount = await ADB.ExecutePushCommand(destinationDevice.ID, destinationDevice.DeviceFolderPath, renamedSelectedFolderPath);
-
-                        // Restore old name
-                        Directory.Move(renamedSelectedFolderPath, selectedFolderPath);
+                        int restoredFilesCount = await RestoringProcess(selectedFolderPath, destinationDevice.ID, destinationDevice.DeviceFolderPath);
 
                         WriteToOutput($"{restoredFilesCount}/{filesCount} files restored.", false, true, true);
                     }
@@ -725,14 +711,49 @@ namespace GoogleBackupManager
 
                     if (!extractDevice.Equals(backupDevice))
                     {
-                        List<string> tempDCIM = new List<string>
+                        WriteToOutput("Unlimited backup process started.", false, true, false);
+
+                        #region "Pull from extract device"
+
+                        List<string> tempCameraList = new List<string>
                         {
-                            extractDevice.DcimFolderPath
+                            extractDevice.CameraFolderPath
                         };
 
-                        await ADB.ExecutePullCommand(extractDevice, tempDCIM);
+                        WriteToOutput($"Extracting files in Camera folder from extract device...", false, false, false);
 
-                        //await ADB.PerformBackup(extractDevice, backupDevice, (bool)checkBox_SaveFilesIntoPC.IsChecked);
+                        // Executes a pull command direct to backup unlimited device folder
+                        int pulledFromExtractDeviceCount = await ADB.ExecutePullCommand(extractDevice, tempCameraList, true);
+
+                        WriteToOutput($"Extracted {pulledFromExtractDeviceCount} files.", false, true, false);
+
+                        #endregion
+
+                        #region "Push into backup device"
+
+                        // Shutdown WiFi if connected with cable in order to disable backup in google photo before deleting that photos.
+                        // Ensure backup device is connected with USB
+
+                        WriteToOutput($"Transferring files to Camera folder of unlimited backup device...", false, false, false);
+
+                        int pushedToBackupDeviceCount = await RestoringProcess(Utils.ProgramFolders.UnlimitedBackupDeviceDirectory, backupDevice.ID, backupDevice.DeviceFolderPath);
+
+                        WriteToOutput($"Tranferred {pushedToBackupDeviceCount}/{pulledFromExtractDeviceCount} files.", false, true, false);
+
+                        #endregion
+
+                        // Delete photos from extract device
+                        // They'll be uploaded again after upload in unlimited backup device
+                        if (pulledFromExtractDeviceCount == pushedToBackupDeviceCount)
+                        {
+                            WriteToOutput($"Deleting photos from extract device to remove them from Google Photos...", false, false, false);
+                        }
+                        else
+                        {
+
+                        }
+
+
                     }
                     else
                     {
@@ -815,6 +836,63 @@ namespace GoogleBackupManager
         //                           PRIVATE UTILITIES                        //
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
+
+        private async Task<int> RestoringProcess(string selectedFolderPath, string destinationDeviceIdentifier, string destinationDeviceFolder)
+        {
+            void CopyDirectory(string sourceDir, string destinationDir)
+            {
+                Directory.CreateDirectory(destinationDir);
+
+                foreach (string file in Directory.GetFiles(sourceDir))
+                {
+                    string fileName = Path.GetFileName(file);
+                    string destFile = Path.Combine(destinationDir, fileName);
+                    File.Copy(file, destFile, true);
+                }
+
+                foreach (string subDir in Directory.GetDirectories(sourceDir))
+                {
+                    string dirName = Path.GetFileName(subDir);
+                    string destSubDir = Path.Combine(destinationDir, dirName);
+                    CopyDirectory(subDir, destSubDir);
+                }
+            }
+
+            // If it's a restoring operation, a trick is needed:
+            // Copy selected folder to a new one with name 0, so it can be pushed to device storage folder
+            string renamedSelectedFolderPath = string.Empty;
+
+            #region "Get new name"
+
+            List<string> splittedSelectedFolderPath = selectedFolderPath.Split('\\').ToList();
+
+            // Replace last part with 0
+            string lastPart = splittedSelectedFolderPath.Last();
+            splittedSelectedFolderPath.Remove(lastPart);
+            splittedSelectedFolderPath.Add("0");
+
+            // Build new folder path
+            renamedSelectedFolderPath = string.Join("\\", splittedSelectedFolderPath);
+
+            #endregion
+
+            CopyDirectory(selectedFolderPath, renamedSelectedFolderPath);
+
+            int restoredFilesCount = await ADB.ExecutePushCommand(destinationDeviceIdentifier, destinationDeviceFolder, renamedSelectedFolderPath);
+
+            // Delete copied folder
+            try
+            {
+                Directory.Delete(renamedSelectedFolderPath, true);
+            }
+            catch (Exception)
+            {
+                WriteToOutput(string.Empty, false, false, false);
+                WriteToOutput($"Error deleting \"{renamedSelectedFolderPath}\" folder!\nDon't worry it's a temporary folder, please delete it manually.", false, true, false);
+            }
+
+            return restoredFilesCount;
+        }
 
     }
 }

@@ -292,9 +292,10 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <GroupBox Header="Extract and restore"
+                                    <GroupBox Header="Extract folders"
                                               Grid.Row="0"
                                               Style="{StaticResource groupBox_Common}">
                                         <Grid>
@@ -304,21 +305,18 @@
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
 
-                                            <Label Content="Select a device:"
+                                            <Label Content="Extract from:"
                                                    Grid.Row="0"
                                                    Style="{StaticResource label_CommonItalic}" />
 
                                             <ComboBox Grid.Row="1"
                                                       DisplayMemberPath="Name"
                                                       Style="{StaticResource comboBox_Common}"
-                                                      x:Name="comboBox_ExtractRestoreFilesDevice" />
+                                                      x:Name="comboBox_ExtractFilesDevice" />
 
-                                            <Label Content="Extract folders:"
+                                            <Label Content="Select folders to be extracted:"
                                                    Grid.Row="2"
                                                    Style="{StaticResource label_CommonItalic}" />
 
@@ -425,25 +423,51 @@
                                                     Style="{StaticResource button_Common}"
                                                     Click="button_Extract_Click" />
 
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <GroupBox Header="Restore folders"
+                                              Grid.Row="1"
+                                              Style="{StaticResource groupBox_Common}"
+                                              x:Name="groupBox_RestoreFolders">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
                                             <Label Content="Restore folders extracted from:"
-                                                   Grid.Row="5"
+                                                   Grid.Row="0"
                                                    Style="{StaticResource label_CommonItalic}" />
 
-                                            <ComboBox Grid.Row="6"
+                                            <ComboBox Grid.Row="1"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      x:Name="comboBox_RestoredFiles" />
+
+                                            <Label Content="Restore to:"
+                                                   Grid.Row="2"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <ComboBox Grid.Row="3"
+                                                      DisplayMemberPath="Name"
                                                       Style="{StaticResource comboBox_Common}"
                                                       x:Name="comboBox_RestoreFilesDevice" />
 
                                             <Button Click="button_Restore_Click"
                                                     Content="Restore"
-                                                    Grid.Row="7"
+                                                    Grid.Row="4"
                                                     Style="{StaticResource button_Common}"
                                                     x:Name="button_Restore" />
-
                                         </Grid>
+                                        
+                                        
                                     </GroupBox>
 
-                                    <GroupBox Header="Transfer"
-                                              Grid.Row="1"
+                                    <GroupBox Header='Transfer files'
+                                              Grid.Row="2"
                                               Style="{StaticResource groupBox_Common}">
                                         <Grid>
                                             <Grid.RowDefinitions>
@@ -455,20 +479,11 @@
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
 
-                                            <Label Content="Select a device:"
+                                            <Label Content="Folder with files:"
                                                    Grid.Row="0"
                                                    Style="{StaticResource label_CommonItalic}" />
 
-                                            <ComboBox Grid.Row="1"
-                                                      DisplayMemberPath="Name"
-                                                      Style="{StaticResource comboBox_Common}"
-                                                      x:Name="comboBox_TransferFilesDevice" />
-
-                                            <Label Content="Folder with files:"
-                                                   Grid.Row="2"
-                                                   Style="{StaticResource label_CommonItalic}" />
-
-                                            <Grid Grid.Row="3">
+                                            <Grid Grid.Row="1">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="70*" />
                                                     <ColumnDefinition Width="30*" />
@@ -476,15 +491,26 @@
 
                                                 <TextBox IsEnabled="False"
                                                          Grid.Column="0"
+                                                         Margin="5,5,5,0"
                                                          Style="{StaticResource textBox_Input}"
                                                          x:Name="textBox_FilesToTransferPath" />
 
                                                 <Button Click="button_SelectTransferFileFolder"
                                                         Content="Select"
                                                         Grid.Column="1"
+                                                        Margin="5,5,5,0"
                                                         Style="{StaticResource button_Common}" />
 
                                             </Grid>
+
+                                            <Label Content="Transfer to Documents folder of:"
+                                                   Grid.Row="2"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <ComboBox Grid.Row="3"
+                                                      DisplayMemberPath="Name"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      x:Name="comboBox_TransferFilesDevice" />
 
                                             <Button Click="button_TransferFiles_Click"
                                                     Content="Transfer"
@@ -535,7 +561,7 @@
                                                   Style="{StaticResource comboBox_Common}"
                                                   x:Name="comboBox_UnlimitedBackupDevice" />
 
-                                        <CheckBox Content="Save files into pc"
+                                        <CheckBox Content="Delete photos from extracting device"
                                                   Grid.Row="4"
                                                   Style="{StaticResource checkBox_ExtractRestoreFiles}"
                                                   x:Name="checkBox_SaveFilesIntoPC" />
