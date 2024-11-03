@@ -17,7 +17,7 @@
         private string musicFolderPath = "/storage/emulated/0/Music/";
         private string picturesFolderPath = "/storage/emulated/0/Pictures/";
         private string ringtonesFolderPath = "/storage/emulated/0/Ringtones/";
-        private string deviceFolderPath = "/storage/emulated/0";
+        private string deviceFolderPath = "/storage/emulated/";
         private string whatsAppBackupsFolderPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Backups";
         private string whatsAppDatabasesFolderPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Databases";
         private string whatsAppMediaFolderPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media";

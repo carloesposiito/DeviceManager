@@ -292,14 +292,17 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <GroupBox Header="Extract"
+                                    <GroupBox Header="Extract and restore"
                                               Grid.Row="0"
                                               Style="{StaticResource groupBox_Common}">
                                         <Grid>
                                             <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
@@ -313,9 +316,13 @@
                                             <ComboBox Grid.Row="1"
                                                       DisplayMemberPath="Name"
                                                       Style="{StaticResource comboBox_Common}"
-                                                      x:Name="comboBox_ExtractFilesDevice" />
+                                                      x:Name="comboBox_ExtractRestoreFilesDevice" />
 
-                                            <Grid Grid.Row="2"
+                                            <Label Content="Extract folders:"
+                                                   Grid.Row="2"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <Grid Grid.Row="3"
                                                   x:Name="grid_ExtractCheckBoxes">
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition />
@@ -413,24 +420,30 @@
 
                                             </Grid>
 
-                                            <Grid Grid.Row="3">
-                                                <Button Content="Extract"
-                                                        Grid.Column="0"
-                                                        Style="{StaticResource button_Common}"
-                                                        Click="button_Extract_Click" />
-                                            </Grid>
+                                            <Button Content="Extract"
+                                                    Grid.Row="4"
+                                                    Style="{StaticResource button_Common}"
+                                                    Click="button_Extract_Click" />
+
+                                            <Label Content="Restore folders extracted from:"
+                                                   Grid.Row="5"
+                                                   Style="{StaticResource label_CommonItalic}" />
+
+                                            <ComboBox Grid.Row="6"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      x:Name="comboBox_RestoreFilesDevice" />
+
+                                            <Button Click="button_Restore_Click"
+                                                    Content="Restore"
+                                                    Grid.Row="7"
+                                                    Style="{StaticResource button_Common}"
+                                                    x:Name="button_Restore" />
 
                                         </Grid>
                                     </GroupBox>
 
-                                    <GroupBox Header="Restore"
-                                              Grid.Row="1"
-                                              Style="{StaticResource groupBox_Common}">
-
-                                    </GroupBox>
-
                                     <GroupBox Header="Transfer"
-                                              Grid.Row="2"
+                                              Grid.Row="1"
                                               Style="{StaticResource groupBox_Common}">
                                         <Grid>
                                             <Grid.RowDefinitions>

@@ -135,6 +135,22 @@ namespace GoogleBackupManager.Functions
                     throw new PlatformToolsFolderException("PlatformTools archive not found!");
                 }
             }
+
+            // Create extract parent folder
+            ProgramFolders.ExtractDirectory = $"{ProgramFolders.CurrentDirectory}\\Extracted";
+
+            if (!Directory.Exists(ProgramFolders.ExtractDirectory))
+            {
+                Directory.CreateDirectory(ProgramFolders.ExtractDirectory);
+            }
+
+            // Create unlimited backup folder
+            ProgramFolders.UnlimitedBackupDirectory = $"{ProgramFolders.CurrentDirectory}\\UnlimitedBackup";
+
+            if (!Directory.Exists(ProgramFolders.UnlimitedBackupDirectory))
+            {
+                Directory.CreateDirectory(ProgramFolders.UnlimitedBackupDirectory);
+            }
         }
 
         /// <summary>
@@ -159,14 +175,6 @@ namespace GoogleBackupManager.Functions
         /// </summary>
         internal static void CreateProgramFolders(Device extractDevice)
         {
-            // Create extract parent folder
-            ProgramFolders.ExtractDirectory = $"{ProgramFolders.CurrentDirectory}\\Extracted";
-            
-            if (!Directory.Exists(ProgramFolders.ExtractDirectory))
-            {
-                Directory.CreateDirectory(ProgramFolders.ExtractDirectory);
-            }
-
             // Inside it create directory for extract device
             ProgramFolders.ExtractDeviceDirectory = $"{ProgramFolders.ExtractDirectory}\\{extractDevice.Name.Replace(" ", "")}_[{extractDevice.ID}]";
 
@@ -181,14 +189,6 @@ namespace GoogleBackupManager.Functions
         /// </summary>
         internal static void CreateProgramFolders(Device extractDevice, Device backupDevice)
         {
-            // Create unlimited backup folder
-            ProgramFolders.UnlimitedBackupDirectory = $"{ProgramFolders.CurrentDirectory}\\UnlimitedBackup";
-
-            if (!Directory.Exists(ProgramFolders.UnlimitedBackupDirectory))
-            {
-                Directory.CreateDirectory(ProgramFolders.UnlimitedBackupDirectory);
-            }
-
             // Inside it create directory for extract device
             ProgramFolders.ExtractDeviceDirectory = $"{ProgramFolders.UnlimitedBackupDirectory}\\{extractDevice.Name.Replace(" ", "_")}_{extractDevice.ID}\\DCIM_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}";
 
