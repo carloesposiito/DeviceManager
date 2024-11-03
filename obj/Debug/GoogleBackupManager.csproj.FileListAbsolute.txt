@@ -93,3 +93,6 @@ C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\Debug\GoogleBackupManager.csproj.CoreCompileInputs.cache
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\Debug\GoogleBackupManager.exe
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\Debug\GoogleBackupManager.pdb
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\TextBlockDialog.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\TextBlockDialog.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\Resources\Scrcpy_v2.7.zip

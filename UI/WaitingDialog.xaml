@@ -32,27 +32,13 @@
         <Border BorderBrush="Gray"
                 BorderThickness="2"
                 Grid.Row="1">
-            <StackPanel Orientation="Vertical"
-                        VerticalAlignment="Center">
-
-                <Label d:Content="Transfer in progress..."
-                       Foreground="Black"
-                       FontSize="12"
-                       FontFamily="Open Sans"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       x:Name="label_Message" />
-
-                <Label d:Content="57%"
-                       Foreground="Black"
-                       FontSize="12"
-                       FontFamily="Open Sans"
-                       HorizontalAlignment="Center"
-                       Padding="0"
-                       VerticalAlignment="Center"
-                       x:Name="label_Percentage" />
-
-            </StackPanel>
+            <Label Content="Loading..."
+                   Foreground="Black"
+                   FontSize="12"
+                   FontFamily="Open Sans"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   x:Name="label_Message" />
         </Border>
 
     </Grid>

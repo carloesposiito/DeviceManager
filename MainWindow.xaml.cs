@@ -12,6 +12,8 @@ using System.Windows.Controls;
 using System.Threading;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using static GoogleBackupManager.Functions.Utils;
+using System.Diagnostics;
 
 namespace GoogleBackupManager
 {
@@ -168,13 +170,16 @@ namespace GoogleBackupManager
                 // Enable authorization group only if there's a device in its combo
                 groupBox_Authorization.IsEnabled = comboBox_AuthDevices.Items.Count > 0;
 
-                // Enable unlimited backup tab only if there's at least one device in both extract and backup combos
-                _isUnlimitedBackupAvailable = comboBox_ExtractDevice.Items.Count > 0 && comboBox_UnlimitedBackupDevice.Items.Count > 0;
-                tabItem_UnlimitedBackup.IsEnabled = _isUnlimitedBackupAvailable;
+                // Make unlimited backup tab visible only if there's at least two devices
+                if (connectedDevicesCount >= 2)
+                {
+                    _isUnlimitedBackupAvailable = comboBox_ExtractDevice.Items.Count > 0 && comboBox_UnlimitedBackupDevice.Items.Count > 0;
+                    tabItem_UnlimitedBackup.Visibility = Visibility.Visible;
+                }
 
                 // Enable apps, files and utils tab only if there's at least one device in uninstall app combobox
 #if DEBUG
-                tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = comboBox_UninstallAppsDevice.Items.Count > 0;
+                tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = groupBox_ScreenCopy.IsEnabled = comboBox_UninstallAppsDevice.Items.Count > 0;
 #else
                 tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = tabItem_Utils.IsEnabled = comboBox_UninstallAppsDevice.Items.Count > 0;
 #endif
@@ -188,16 +193,6 @@ namespace GoogleBackupManager
                 if (ADB.ConnectedDevices.Any(connectedDevice => !connectedDevice.IsAuthorized))
                 {
                     WriteToOutput("Seems there is/are devices unauthorized!\nPlease authorize it/them to use it/them.", false, true, false);
-                }
-
-                if (connectedDevicesCount > 1)
-                {
-                    if (!_isUnlimitedBackupAvailable)
-                    {
-                        string message = comboBox_ExtractDevice.Items.Count > 0 ? "Connect at least two different devices!" : "Not found a device with unlimited backup!";
-
-                        WriteToOutput($"Unlimited backup tab disabled.\n{message}", false, true, false);
-                    }
                 }
 
                 WriteToOutput(string.Empty, false, false, true);
@@ -258,11 +253,16 @@ namespace GoogleBackupManager
             comboBox_TransferFilesDevice.Items.Clear();
             comboBox_RestoreFilesDevice.Items.Clear();
 
-            // Disable unlimited backup, apps, files and utils tabs
+            // Hide unlimited backup tab
+            // Disable apps, files and utils tabs
 #if DEBUG
-            tabItem_UnlimitedBackup.IsEnabled = tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = false;
+            tabItem_UnlimitedBackup.Visibility = Visibility.Collapsed;
+            tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = false;
+
+            groupBox_ScreenCopy.IsEnabled = false;
 #else
-            tabItem_UnlimitedBackup.IsEnabled = tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = tabItem_Utils.IsEnabled = false;
+            tabItem_UnlimitedBackup.Visibility = Visibility.Collapsed;
+            tabItem_Apps.IsEnabled = tabItem_Files.IsEnabled = tabItem_Utils.IsEnabled = false;
 #endif
 
             // Disable authorization group
@@ -288,7 +288,7 @@ namespace GoogleBackupManager
 
             // Show waiting dialog
             WaitingDialog _waitingDialog;
-            _waitingDialog = new WaitingDialog("Loading program...");
+            _waitingDialog = new WaitingDialog();
             _waitingDialog.Show();
 
             try
@@ -742,18 +742,21 @@ namespace GoogleBackupManager
 
                         #endregion
 
-                        // Delete photos from extract device
-                        // They'll be uploaded again after upload in unlimited backup device
-                        if (pulledFromExtractDeviceCount == pushedToBackupDeviceCount)
+                        if ((bool)checkBox_DeleteExtractedPhotos.IsChecked)
                         {
-                            WriteToOutput($"Deleting photos from extract device to remove them from Google Photos...", false, false, false);
+                            // Delete photos from extract device
+                            // They'll be uploaded again after upload in unlimited backup device
+                            if (pulledFromExtractDeviceCount == pushedToBackupDeviceCount)
+                            {
+                                WriteToOutput($"Deleting photos from extract device...", false, false, false);
+                                await ADB.ExecuteDeleteCameraCommand(extractDevice.ID);
+                                WriteToOutput($"Photos deleted successfully!", false, true, true);
+                            }
+                            else
+                            {
+                                WriteToOutput($"Extracted and trasferred files count mismatch!\nDelete photos from extract device skipped for safety!", false, true, true);
+                            }
                         }
-                        else
-                        {
-
-                        }
-
-
                     }
                     else
                     {
@@ -762,7 +765,7 @@ namespace GoogleBackupManager
                 }
                 catch (Exception ex)
                 {
-                    WriteToOutput($"Error while copying files to device!\n{ex.Message}", false, true, true);
+                    WriteToOutput($"Error during unlimited backup process!\n{ex.Message}", false, true, true);
                 }
                 finally
                 {
@@ -821,12 +824,76 @@ namespace GoogleBackupManager
 
         private void button_ShowRawOutput_Click(object sender, RoutedEventArgs e)
         {
-
+            TextBlockDialog textBlockDialog = new TextBlockDialog(ADB.RawOutput);
+            textBlockDialog.Show();
         }
 
         private void button_StartScreenCopy_Click(object sender, RoutedEventArgs e)
         {
+            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            {
+                try
+                {
+                    Device selectedScrcpyDevice = comboBox_ScrcpyDevice.SelectedItem as Device;
+                    string scrcpyArchive = $"{ProgramFolders.CurrentDirectory}\\Resources\\Scrcpy_v2.7.zip";
 
+                    bool canStart = true;
+
+                    // If platform tools doesn't exist and archive yes then extract it
+                    if (!Directory.Exists(ProgramFolders.ScrcpyDirectory))
+                    {
+                        if (File.Exists(scrcpyArchive))
+                        {
+                            Directory.CreateDirectory(ProgramFolders.ScrcpyDirectory);
+
+                            // Unzip platform tools archive into platform tools folders
+                            if (!UnzipArchive(scrcpyArchive, ProgramFolders.ScrcpyDirectory))
+                            {
+                                canStart = Utils.UnzipArchive($"{ProgramFolders.CurrentDirectory}\\Resources\\Scrcpy_v2.7.zip", ProgramFolders.ScrcpyDirectory);
+                            }
+                        }
+                        else
+                        {
+                            WriteToOutput("Scrcpy archive not found!", false, true, true);
+                        }
+                    }
+
+                    if (canStart)
+                    {
+                        Process cmdProcess = new Process();
+                        cmdProcess.StartInfo.FileName = "cmd.exe";
+                        cmdProcess.StartInfo.UseShellExecute = false;
+                        cmdProcess.StartInfo.RedirectStandardInput = true;
+                        cmdProcess.StartInfo.RedirectStandardOutput = true;
+                        cmdProcess.StartInfo.CreateNoWindow = false;
+                        cmdProcess.StartInfo.WorkingDirectory = ProgramFolders.ScrcpyDirectory;
+                        cmdProcess.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+                        cmdProcess.Start();
+
+                        using (var writer = cmdProcess.StandardInput)
+                        {
+                            if (writer.BaseStream.CanWrite)
+                            {
+                                writer.WriteLine($"scrcpy -s {selectedScrcpyDevice.ID}");
+                            }
+                        }
+
+                        cmdProcess.WaitForExit();
+                    }
+                    else
+                    {
+                        WriteToOutput("Can't start Scrcpy", false, true, true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    WriteToOutput($"Error starting Scrcpy!\n{ex.Message}", false, true, true);
+                }
+                finally
+                {
+                    Monitor.Exit(_syncMonitor);
+                }
+            }
         }
 
         #endregion

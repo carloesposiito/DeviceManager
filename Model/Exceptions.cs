@@ -34,4 +34,12 @@ namespace GoogleBackupManager.Model.Exceptions
         internal CommandPromptException(string message) : base(message) { }
     }
 
+    /// <summary>
+    /// Exception thrown when command prompt is not active anymore.
+    /// </summary>
+    internal class ScrcpyProcessException : Exception
+    {
+        internal ScrcpyProcessException(string message) : base(message) { }
+    }
+
 }

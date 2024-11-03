@@ -7,15 +7,9 @@ namespace GoogleBackupManager.UI
     /// </summary>
     public partial class WaitingDialog : Window
     {
-        public WaitingDialog(string message)
+        public WaitingDialog()
         {
             InitializeComponent();
-            label_Message.Content = message;
-        }
-
-        public void RefreshPercentage(string percentage)
-        {
-            label_Percentage.Content = percentage;
         }
     }
 }

@@ -22,7 +22,7 @@ namespace GoogleBackupManager.Functions
         #region "Getters and setters"
 
         internal static List<Device> ConnectedDevices { get => _connectedDevices; set => _connectedDevices = value; }
-        internal static String RawOutput { get => _rawOutput.ToString(); }
+        internal static string RawOutput { get => string.Join("\n", _rawOutput); }
 
         #endregion
 
@@ -372,88 +372,11 @@ namespace GoogleBackupManager.Functions
             return totalFilesCount;
         }
 
-        ///// <summary>
-        ///// Performs backup operations.
-        ///// </summary>
-        ///// <param name="extractDevice">The device to make backup from.</param>
-        ///// <param name="backupDevice">The device to make backup from.</param>
-        ///// <returns>True if operation is successful, otherwise false.</returns>
-        //internal static async Task<bool> PerformBackup(Device extractDevice, Device backupDevice, bool saveLocally = false)
-        //{
-        //    async Task ExecuteADBCommandAsync(string command)
-        //    {
-        //        // Invia il comando al processo
-        //        await Task.Run(() =>
-        //        {
-        //            _commandPromptProcess.StandardInput.WriteLine(command);
-        //            _commandPromptProcess.StandardInput.Flush();
-        //            _commandPromptProcess.StandardInput.WriteLine("exit");
-        //        });
-
-        //        // Attendi che il processo termini
-        //        await Task.Run(() => _commandPromptProcess.WaitForExit());
-
-        //        // Gestisci il risultato finale
-        //        if (_commandPromptProcess.ExitCode != 0)
-        //        {
-        //            throw new Exception($"ADB command failed: {_rawOutput.ToString()}");
-        //        }
-
-        //        Console.WriteLine("Command executed successfully.");
-        //        // Puoi usare _filteredOutput per analizzare l'output
-        //    }
-
-        //    bool result = false;
-
-        //    if (saveLocally)
-        //    {
-        //        Utils.CreateProgramFolders(extractDevice, backupDevice);
-
-        //        try
-        //        {
-        //            // Pull della cartella dal dispositivo con id1
-        //            string pullCommand = $"adb -s {extractDevice.ID} pull /storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Databases {Utils.ProgramFolders.ExtractDeviceDirectory}";
-        //            //string pullCommand = $"adb -s {extractDevice.ID} pull /storage/emulated/0/DCIM/Camera {Utils.ProgramFolders.ExtractDeviceDirectory}";
-        //            await ExecuteADBCommandAsync(pullCommand);
-
-        //            // Sincronizza i file dal locale al remoto sul dispositivo con id2
-        //            //string syncPushCommand = $"-s {id2} sync {localFolderPath} {remoteFolderPath}";
-        //            //await ExecuteADBCommandAsync(syncPushCommand); // Esecuzione asincrona
-
-        //            Console.WriteLine("Operazione completata con successo.");
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            Console.WriteLine($"Errore: {ex.Message}");
-        //        }
-        //    }
-        //    else
-        //    {
-
-
-        //        // Pull files from extract device directly into backup device
-        //        // Only files that doesn't exist
-
-        //        //try
-        //        //{
-        //        //    // Pull della cartella dal dispositivo con id1
-        //        //    string pullCommand = $"-s {extractDevice.ID} pull /storage/emulated/0/Documents/DCIM {localFolderPath}";
-        //        //    await ExecuteADBCommandAsync(pullCommand);
-
-        //        //    // Sincronizza i file dal locale al remoto sul dispositivo con id2
-        //        //    string syncPushCommand = $"-s {id2} sync {localFolderPath} {remoteFolderPath}";
-        //        //    await ExecuteADBCommandAsync(syncPushCommand); // Esecuzione asincrona
-
-        //        //    Console.WriteLine("Operazione completata con successo.");
-        //        //}
-        //        //catch (Exception ex)
-        //        //{
-        //        //    Console.WriteLine($"Errore: {ex.Message}");
-        //        //}
-        //    }
-
-        //    return result;
-        //}
+        internal static async Task ExecuteDeleteCameraCommand(string destionationDeviceIdentifier)
+        {
+            string command = $"adb -s {destionationDeviceIdentifier} shell \"rm -r /sdcard/DCIM/Camera\"";
+            await ExecuteCommand(command);
+        }
 
         ////////////////////////////////////////////////////////////////////////
         //                                                                    //

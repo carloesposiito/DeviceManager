@@ -528,6 +528,8 @@
                         <!--Backup tab-->
                         <TabItem Header="Unlimited backup"
                                  Style="{StaticResource tabItem_Common}"
+                                 Visibility="Collapsed"
+                                 d:Visibility="Visible"
                                  x:Name="tabItem_UnlimitedBackup">
                             <Grid Style="{StaticResource grid_TabItemParent}"
                                   x:Name="grid_Backup">
@@ -561,10 +563,10 @@
                                                   Style="{StaticResource comboBox_Common}"
                                                   x:Name="comboBox_UnlimitedBackupDevice" />
 
-                                        <CheckBox Content="Delete photos from extracting device"
+                                        <CheckBox Content="Delete extracted photos from device"
                                                   Grid.Row="4"
                                                   Style="{StaticResource checkBox_ExtractRestoreFiles}"
-                                                  x:Name="checkBox_SaveFilesIntoPC" />
+                                                  x:Name="checkBox_DeleteExtractedPhotos" />
 
                                         <Button Click="button_StartBackup_Click"
                                                 Content="Start"

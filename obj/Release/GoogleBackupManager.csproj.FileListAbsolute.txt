@@ -51,3 +51,6 @@ C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\R
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\ApplicationStyles.baml
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\WaitingDialog.g.cs
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\WaitingDialog.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Release\Resources\Scrcpy_v2.7.zip
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\TextBlockDialog.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Release\UI\TextBlockDialog.baml

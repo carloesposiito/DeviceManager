@@ -95,6 +95,7 @@ namespace GoogleBackupManager.Functions
             private static string _backupDeviceDirectory;
             private static string _unlimitedBackupDirectory;
             private static string _unlimitedBackupDeviceDirectory;
+            private static string _scrcpyDirectory;
 
             #region "Getters and setters"
 
@@ -105,6 +106,7 @@ namespace GoogleBackupManager.Functions
             internal static string BackupDeviceDirectory { get => _extractDeviceDirectory; set => _extractDeviceDirectory = value; }
             internal static string UnlimitedBackupDirectory { get => _unlimitedBackupDirectory; set => _unlimitedBackupDirectory = value; }
             public static string UnlimitedBackupDeviceDirectory { get => _unlimitedBackupDeviceDirectory; set => _unlimitedBackupDeviceDirectory = value; }
+            public static string ScrcpyDirectory { get => _scrcpyDirectory; set => _scrcpyDirectory = value; }
 
             #endregion
         }
@@ -118,6 +120,8 @@ namespace GoogleBackupManager.Functions
             ProgramFolders.CurrentDirectory = Directory.GetCurrentDirectory();
             ProgramFolders.PlatformToolsDirectory = $"{ProgramFolders.CurrentDirectory}\\PlatformTools";
             string platformToolsArchive = $"{ProgramFolders.CurrentDirectory}\\Resources\\PlatformTools.zip";
+
+            ProgramFolders.ScrcpyDirectory = $"{ProgramFolders.CurrentDirectory}\\Scrcpy";
 
             // If platform tools doesn't exist and archive yes then extract it
             if (!Directory.Exists(ProgramFolders.PlatformToolsDirectory))
@@ -159,7 +163,7 @@ namespace GoogleBackupManager.Functions
         /// Unzips an archive to a destination path according to parameters.
         /// </summary>
         /// <returns>True if operation is successful, otherwise false.</returns>
-        private static bool UnzipArchive(string archivePath, string destinationPath)
+        internal static bool UnzipArchive(string archivePath, string destinationPath)
         {
             try
             {
