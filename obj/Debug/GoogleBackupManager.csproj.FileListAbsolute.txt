@@ -1,20 +1,3 @@
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\GoogleBackupManager.exe.config
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\GoogleBackupManager.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\GoogleBackupManager.pdb
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.csproj.AssemblyReference.cache
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\MainWindow.g.cs
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\App.g.cs
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager_MarkupCompile.cache
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager_MarkupCompile.lref
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\MainWindow.baml
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.g.resources
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.Properties.Resources.resources
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.csproj.GenerateResource.cache
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.csproj.CoreCompileInputs.cache
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.exe
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.pdb
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\MessageDialog.g.cs
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\MessageDialog.baml
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Debug\GoogleBackupManager.csproj.AssemblyReference.cache
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Debug\MainWindow.g.cs
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Debug\UI\MessageDialog.g.cs
@@ -47,9 +30,6 @@ C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\bin\Debug\Go
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\bin\Debug\GoogleBackupManager.exe
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\bin\Debug\GoogleBackupManager.pdb
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager\obj\Debug\UI\ApplicationStyles.baml
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\ApplicationStyles.baml
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\WaitingDialog.g.cs
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\WaitingDialog.baml
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-main\bin\Debug\GoogleBackupManager.exe.config
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-main\bin\Debug\GoogleBackupManager.exe
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-main\bin\Debug\GoogleBackupManager.pdb
@@ -71,7 +51,6 @@ C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-main\obj\Deb
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-main\obj\Debug\GoogleBackupManager.exe
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-main\obj\Debug\GoogleBackupManager.pdb
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-main\bin\Debug\Resources\PlatformTools.zip
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\Resources\PlatformTools.zip
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\bin\Debug\Resources\PlatformTools.zip
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\bin\Debug\GoogleBackupManager.exe.config
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\bin\Debug\GoogleBackupManager.exe
@@ -93,6 +72,27 @@ C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\Debug\GoogleBackupManager.csproj.CoreCompileInputs.cache
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\Debug\GoogleBackupManager.exe
 C:\Users\carlo.esposito\Documents\Altro\UsrProj\GoogleBackupManager-develop\obj\Debug\GoogleBackupManager.pdb
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\TextBlockDialog.g.cs
-C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\TextBlockDialog.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\Resources\PlatformTools.zip
 C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\Resources\Scrcpy_v2.7.zip
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\GoogleBackupManager.exe.config
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\GoogleBackupManager.exe
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\bin\Debug\GoogleBackupManager.pdb
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.csproj.AssemblyReference.cache
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\MainWindow.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\ApplicationStyles.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\MainWindow.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\MessageDialog.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\TextBlockDialog.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\WaitingDialog.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\App.g.cs
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager_MarkupCompile.cache
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager_MarkupCompile.lref
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\MessageDialog.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\TextBlockDialog.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\UI\WaitingDialog.baml
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.g.resources
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.Properties.Resources.resources
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.csproj.GenerateResource.cache
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.csproj.CoreCompileInputs.cache
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.exe
+C:\Users\Carlo\Documents\Develop\Visual Studio\GoogleBackupManager\obj\Debug\GoogleBackupManager.pdb

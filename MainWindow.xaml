@@ -176,6 +176,8 @@
                         <!--Applications tab-->
                         <TabItem Header="Apps"
                                  Style="{StaticResource tabItem_Common}"
+                                 Visibility="Collapsed"
+                                 d:Visibility="Visible"
                                  x:Name="tabItem_Apps">
                             <Grid Style="{StaticResource grid_TabItemParent}">
                                 <Grid.RowDefinitions>
@@ -203,6 +205,7 @@
 
                                         <ComboBox Grid.Row="1"
                                                   DisplayMemberPath="Name"
+                                                  SelectionChanged="comboBox_UninstallAppsDevice_SelectionChanged"
                                                   Style="{StaticResource comboBox_Common}"
                                                   x:Name="comboBox_UninstallAppsDevice" />
 

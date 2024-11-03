@@ -961,5 +961,9 @@ namespace GoogleBackupManager
             return restoredFilesCount;
         }
 
+        private void comboBox_UninstallAppsDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
     }
 }
