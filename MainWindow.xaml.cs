@@ -452,6 +452,11 @@ namespace GoogleBackupManager
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
+        private void comboBox_UninstallAppsDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
         ////////////////////////////////////////////////////////////////////////
         //                                                                    //
         //                                FILES TAB                           //
@@ -667,12 +672,12 @@ namespace GoogleBackupManager
                     int filesCount = Directory.GetFiles(selectedDir, "*", SearchOption.AllDirectories).Count();
                     if (Directory.Exists(selectedDir) && filesCount > 0)
                     {
-                        WriteToOutput("Copying files, please wait...", false, false, false);
+                        WriteToOutput("Transferring files, please wait...", false, false, false);
 
                         Device destinationDevice = comboBox_TransferFilesDevice.SelectedItem as Device;
                         var operationResult = await ADB.ExecutePushCommand(destinationDevice.ID, destinationDevice.DocumentsFolderPath, $"{selectedDir}");
 
-                        WriteToOutput($"{operationResult}/{filesCount} files copied to device.", false, true, true);
+                        WriteToOutput($"{operationResult}/{filesCount} files transferred to device.", false, true, true);
                     }
                     else
                     {
@@ -681,7 +686,7 @@ namespace GoogleBackupManager
                 }
                 catch (Exception ex)
                 {
-                    WriteToOutput($"Error while copying files to device!\n{ex.Message}", false, true, true);
+                    WriteToOutput($"Error while transferring files to device!\n{ex.Message}", false, true, true);
                 }
                 finally
                 {
@@ -961,9 +966,5 @@ namespace GoogleBackupManager
             return restoredFilesCount;
         }
 
-        private void comboBox_UninstallAppsDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
     }
 }
