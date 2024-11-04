@@ -69,15 +69,5 @@ namespace AndroidDeviceManager.Properties {
                 return ((byte[])(obj));
             }
         }
-        
-        /// <summary>
-        ///   Cerca una risorsa localizzata di tipo System.Byte[].
-        /// </summary>
-        internal static byte[] Scrcpy_v2_7 {
-            get {
-                object obj = ResourceManager.GetObject("Scrcpy_v2_7", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
     }
 }

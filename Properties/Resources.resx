@@ -121,7 +121,4 @@
   <data name="PlatformTools" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\PlatformTools.zip;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="Scrcpy_v2_7" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Scrcpy_v2.7.zip;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
 </root>
