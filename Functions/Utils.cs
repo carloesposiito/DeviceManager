@@ -45,6 +45,10 @@ namespace GoogleBackupManager.Functions
             {
                 return 100;
             }
+            else if (command.Contains("uninstall"))
+            {
+                return 7500;
+            }
             else
             {
                 return 500;

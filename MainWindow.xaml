@@ -176,8 +176,7 @@
                         <!--Applications tab-->
                         <TabItem Header="Apps"
                                  Style="{StaticResource tabItem_Common}"
-                                 Visibility="Collapsed"
-                                 d:Visibility="Visible"
+                                 Visibility="Visible"
                                  x:Name="tabItem_Apps">
                             <Grid Style="{StaticResource grid_TabItemParent}">
                                 <Grid.RowDefinitions>
@@ -209,34 +208,11 @@
                                                   Style="{StaticResource comboBox_Common}"
                                                   x:Name="comboBox_UninstallAppsDevice" />
 
-                                        <Label Content="Third party apps:"
+                                        <Label Content="System apps:"
                                                Grid.Row="2"
                                                Style="{StaticResource label_CommonItalic}" />
 
                                         <Grid Grid.Row="3">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="70*" />
-                                                <ColumnDefinition Width="30*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <ComboBox Grid.Column="0"
-                                                      Style="{StaticResource comboBox_Common}"
-                                                      Margin="5"
-                                                      x:Name="comboBox_DeviceThirdPartyApps" />
-
-                                            <Button Content="Disable"
-                                                    Grid.Column="1"
-                                                    Margin="5"
-                                                    Style="{StaticResource button_Common}"
-                                                    x:Name="button_UninstallThirdPartyApp" />
-
-                                        </Grid>
-
-                                        <Label Content="System apps:"
-                                               Grid.Row="4"
-                                               Style="{StaticResource label_CommonItalic}" />
-
-                                        <Grid Grid.Row="5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="70*" />
                                                 <ColumnDefinition Width="30*" />
@@ -251,7 +227,32 @@
                                                     Grid.Column="1"
                                                     Margin="5"
                                                     Style="{StaticResource button_Common}"
-                                                    x:Name="button_UninstallSystemApp" />
+                                                    x:Name="button_UninstallSystemApp"
+                                                    Click="button_UninstallSystemApp_Click" />
+
+                                        </Grid>
+
+                                        <Label Content="Third party apps:"
+                                               Grid.Row="4"
+                                               Style="{StaticResource label_CommonItalic}" />
+
+                                        <Grid Grid.Row="5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="70*" />
+                                                <ColumnDefinition Width="30*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <ComboBox Grid.Column="0"
+                                                      Style="{StaticResource comboBox_Common}"
+                                                      Margin="5"
+                                                      x:Name="comboBox_DeviceThirdPartyApps" />
+
+                                            <Button Content="Disable"
+                                                    Grid.Column="1"
+                                                    Margin="5"
+                                                    Style="{StaticResource button_Common}"
+                                                    x:Name="button_UninstallThirdPartyApp"
+                                                    Click="button_UninstallThirdPartyApp_Click" />
 
                                         </Grid>
 
@@ -274,7 +275,8 @@
                                                     Grid.Column="1"
                                                     Margin="5,5,5,10"
                                                     Style="{StaticResource button_Common}"
-                                                    x:Name="button_UninstallApp" />
+                                                    x:Name="button_UninstallApp"
+                                                    Click="button_UninstallApp_Click" />
 
                                         </Grid>
 

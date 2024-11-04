@@ -26,7 +26,7 @@ namespace GoogleBackupManager
 
         // Monitor variables
         private readonly Object _syncMonitor = new object();
-        private bool _isScanning = false;
+        private bool isBusy = false;
 
         #endregion
 
@@ -47,10 +47,12 @@ namespace GoogleBackupManager
         {
             bool isLocked = !Monitor.TryEnter(_syncMonitor);
 
-            if (!_isScanning && !isLocked)
+            if (!isBusy && !isLocked)
             {
                 try
                 {
+                    isBusy = true;
+
                     ResetForm();
                     WriteToOutput("Scanning devices...", true, true, false);
 
@@ -72,7 +74,7 @@ namespace GoogleBackupManager
                     {
                         Monitor.Exit(_syncMonitor);
                     }
-                    _isScanning = false;
+                    isBusy = false;
                 }
             }
         }
@@ -335,8 +337,27 @@ namespace GoogleBackupManager
 
         private async void button_Close_Click(object sender, RoutedEventArgs e)
         {
-            await ADB.CloseConnection();
-            Close();
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
+            {
+                isBusy = true;
+
+                try
+                {
+                    await ADB.CloseConnection();
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    Debug.WriteLine(ex.Message);
+#endif
+                }
+                finally
+                {
+                    isBusy = false;
+                    Monitor.Exit(_syncMonitor);
+                    Close();
+                }
+            }
         }
 
         #endregion
@@ -354,16 +375,19 @@ namespace GoogleBackupManager
 
         private async void button_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
             {
+                isBusy = true;
+                
                 try
-                {
+                {    
                     Device selectedDevice = comboBox_AuthDevices.SelectedItem as Device;
                     await ADB.AuthorizeDevice(selectedDevice.ID);
                     ScanDevices();
                 }
                 finally
                 {
+                    isBusy = false;
                     Monitor.Exit(_syncMonitor);
                 }
             }
@@ -390,8 +414,10 @@ namespace GoogleBackupManager
 
         private async void button_ConnectPairDevice_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
             {
+                isBusy = true;
+
                 try
                 {
                     // Check valid data
@@ -441,6 +467,7 @@ namespace GoogleBackupManager
                 }
                 finally
                 {
+                    isBusy = false;
                     Monitor.Exit(_syncMonitor);
                 }
             }
@@ -452,9 +479,55 @@ namespace GoogleBackupManager
         //                                                                    //
         ////////////////////////////////////////////////////////////////////////
 
-        private void comboBox_UninstallAppsDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void comboBox_UninstallAppsDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (comboBox_UninstallAppsDevice.SelectedItem != null)
+            {
+                Device selectedDevice = comboBox_UninstallAppsDevice.SelectedItem as Device;
+                var apps = await ADB.GetApplications(selectedDevice.ID);
+                var allApps = apps.Item1;
+                var systemApps = apps.Item2;
+                var thirdPartyApps = apps.Item3;
 
+                foreach (var item in allApps)
+                {
+                    comboBox_DeviceAllApps.Items.Add(item);
+                }
+                comboBox_DeviceAllApps.SelectedIndex = 0;
+
+                foreach (var item in systemApps)
+                {
+                    comboBox_DeviceSystemApps.Items.Add(item);
+                }
+                comboBox_DeviceSystemApps.SelectedIndex = 0;
+
+                foreach (var item in thirdPartyApps)
+                {
+                    comboBox_DeviceThirdPartyApps.Items.Add(item);
+                }
+                comboBox_DeviceThirdPartyApps.SelectedIndex = 0;
+            }
+        }
+
+        private async void button_UninstallSystemApp_Click(object sender, RoutedEventArgs e)
+        {
+            Device selectedDevice = comboBox_UninstallAppsDevice.SelectedItem as Device;
+            string selectedItem = comboBox_DeviceSystemApps.SelectedItem as string;
+            await UninstallApp(selectedDevice, selectedItem);
+        }
+
+        private async void button_UninstallThirdPartyApp_Click(object sender, RoutedEventArgs e)
+        {
+            Device selectedDevice = comboBox_UninstallAppsDevice.SelectedItem as Device;
+            string selectedItem = comboBox_DeviceThirdPartyApps.SelectedItem as string;
+            await UninstallApp(selectedDevice, selectedItem);
+        }
+
+        private async void button_UninstallApp_Click(object sender, RoutedEventArgs e)
+        {
+            Device selectedDevice = comboBox_UninstallAppsDevice.SelectedItem as Device;
+            string selectedItem = comboBox_DeviceAllApps.SelectedItem as string;
+            await UninstallApp(selectedDevice, selectedItem);
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -508,8 +581,10 @@ namespace GoogleBackupManager
 
         private async void button_Extract_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
             {
+                isBusy = true;
+
                 try
                 {
                     WriteToOutput("Extracting files, please wait...", false, false, false);
@@ -598,6 +673,7 @@ namespace GoogleBackupManager
                 }
                 finally
                 {
+                    isBusy = false;
                     Monitor.Exit(_syncMonitor);
                     RefreshExtractedFolders();
 
@@ -617,8 +693,10 @@ namespace GoogleBackupManager
 
         private async void button_Restore_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
             {
+                isBusy = true;
+
                 try
                 {
                     if (_extractedDirs.Count() > 0)
@@ -651,6 +729,7 @@ namespace GoogleBackupManager
                 }
                 finally
                 {
+                    isBusy = false;
                     Monitor.Exit(_syncMonitor);
                 }
             }
@@ -663,8 +742,10 @@ namespace GoogleBackupManager
 
         private async void button_TransferFiles_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
             {
+                isBusy = true;
+
                 try
                 {
                     string selectedDir = textBox_FilesToTransferPath.Text;
@@ -690,6 +771,7 @@ namespace GoogleBackupManager
                 }
                 finally
                 {
+                    isBusy = false;
                     textBox_FilesToTransferPath.Text = string.Empty;
                     Monitor.Exit(_syncMonitor);
                 }
@@ -707,8 +789,10 @@ namespace GoogleBackupManager
         /// </summary>
         private async void button_StartBackup_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
             {
+                isBusy = true;
+
                 try
                 {
                     var extractDevice = comboBox_ExtractDevice.SelectedItem as Device;
@@ -774,6 +858,7 @@ namespace GoogleBackupManager
                 }
                 finally
                 {
+                    isBusy = false;
                     Monitor.Exit(_syncMonitor);
                 }
             }
@@ -835,8 +920,10 @@ namespace GoogleBackupManager
 
         private void button_StartScreenCopy_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isScanning && Monitor.TryEnter(_syncMonitor))
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
             {
+                isBusy = true;
+
                 try
                 {
                     Device selectedScrcpyDevice = comboBox_ScrcpyDevice.SelectedItem as Device;
@@ -896,6 +983,7 @@ namespace GoogleBackupManager
                 }
                 finally
                 {
+                    isBusy = false;
                     Monitor.Exit(_syncMonitor);
                 }
             }
@@ -932,7 +1020,7 @@ namespace GoogleBackupManager
 
             // If it's a restoring operation, a trick is needed:
             // Copy selected folder to a new one with name 0, so it can be pushed to device storage folder
-            string renamedSelectedFolderPath = string.Empty;
+            string renamedSelectedFolderPath;
 
             #region "Get new name"
 
@@ -966,5 +1054,32 @@ namespace GoogleBackupManager
             return restoredFilesCount;
         }
 
+        private async Task UninstallApp(Device selectedDevice, string selectedItem)
+        {
+            if (!isBusy && Monitor.TryEnter(_syncMonitor))
+            {
+                isBusy = true;
+
+                try
+                {
+                    WriteToOutput($"Uninstalling {selectedItem} on {selectedDevice.Name}...", false, true, false);
+                    WriteToOutput($"Sometimes this process requires a lot of time and application freezes.\n" +
+                        $"If so, please check if app is successfully uninstalled then restart program!", false, true, false);
+                    WriteToOutput(await ADB.UninstallApp(selectedDevice.ID, selectedItem) ? "App successfully uninstalled." : "Error while uninstalling app!", false, true, true);
+                }
+                catch (Exception ex)
+                {
+                    WriteToOutput(ex.Message, false, true, true);
+                }
+                finally
+                {
+                    // Trigger functions to refresh device packages
+                    comboBox_UninstallAppsDevice_SelectionChanged(null, null);
+
+                    isBusy = false;
+                    Monitor.Exit(_syncMonitor);
+                }
+            }
+        }
     }
 }

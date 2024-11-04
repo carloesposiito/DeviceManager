@@ -355,6 +355,10 @@ namespace GoogleBackupManager.Functions
         {
             int totalFilesCount = 0;
 
+            // Sometimes device ID contains invalid characters
+            string oldDeviceIdentifier = sourceDevice.ID;
+            sourceDevice.ID = sourceDevice.ID.Contains(":") ? sourceDevice.ID.Replace(":", ".") : sourceDevice.ID;
+
             if (unlimitedBackupProcess)
             {
                 Utils.CreateUnlimitedBackupProgramFolders(sourceDevice);
@@ -364,6 +368,7 @@ namespace GoogleBackupManager.Functions
                 Utils.CreateProgramFolders(sourceDevice);
             }
 
+            sourceDevice.ID = oldDeviceIdentifier;
             foreach (string sourceDeviceFolder in sourceDeviceFolders)
             {
                 totalFilesCount += await ExecutePullCommand(sourceDevice.ID, sourceDeviceFolder, unlimitedBackupProcess);
@@ -372,10 +377,98 @@ namespace GoogleBackupManager.Functions
             return totalFilesCount;
         }
 
+        /// <summary>
+        /// Deletes Camera folder from target device.
+        /// </summary>
+        /// <param name="destionationDeviceIdentifier">Target device ID.</param>
+        /// <returns></returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
         internal static async Task ExecuteDeleteCameraCommand(string destionationDeviceIdentifier)
         {
             string command = $"adb -s {destionationDeviceIdentifier} shell \"rm -r /sdcard/DCIM/Camera\"";
             await ExecuteCommand(command);
+        }
+
+        /// <summary>
+        /// Scans applications on device.
+        /// </summary>
+        /// <param name="deviceIdentifier">ID of the device to be scanned.</param>
+        /// <returns>
+        /// <list type="bullet">
+        /// <item>Item 1 is all device apps.</item>
+        /// <item>Item 2 is device system apps.</item>
+        /// <item>Item 3 is device third party apps.</item>
+        /// </list>
+        /// </returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task<Tuple<List<string>, List<string>, List<string>>> GetApplications(string deviceIdentifier)
+        {
+            List<string> allApps = new List<string>();
+            List<string> systemApps = new List<string>();
+            List<string> thirdPartyApps = new List<string>();
+
+            const string START_PATTERN = "package:";
+            int startIndex;
+            string packageName;
+
+            // Get all apps
+            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages");
+            if (_filteredOutput.Count > 0)
+            {
+                foreach (string allApp in _filteredOutput)
+                {
+                    startIndex = allApp.IndexOf(START_PATTERN) + START_PATTERN.Length;
+                    packageName = allApp.Substring(startIndex);
+                    allApps.Add(packageName);
+                }
+            }
+
+            // Get only system apps
+            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages -s");
+            if (_filteredOutput.Count > 0)
+            {
+                foreach (string systemApp in _filteredOutput)
+                {
+                    startIndex = systemApp.IndexOf(START_PATTERN) + START_PATTERN.Length;
+                    packageName = systemApp.Substring(startIndex);
+                    systemApps.Add(packageName);
+                }
+            }
+
+            // Get only 3d party packages
+            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages -3");
+            if (_filteredOutput.Count > 0)
+            {
+                foreach (string thirdPartyApp in _filteredOutput)
+                {
+                    startIndex = thirdPartyApp.IndexOf(START_PATTERN) + START_PATTERN.Length;
+                    packageName = thirdPartyApp.Substring(startIndex);
+                    thirdPartyApps.Add(packageName);
+                }
+            }
+
+            return new Tuple<List<string>, List<string>, List<string>>(allApps, systemApps, thirdPartyApps);
+        }
+
+        /// <summary>
+        /// Uninstall an app on target device.
+        /// </summary>
+        /// <param name="deviceIdentifier">Target device ID.</param>
+        /// <param name="packageName">Name of the package to uninstall.</param>
+        /// <returns>True if uninstalled successfully, otherwise false.</returns>
+        /// <exception cref="PlatformToolsProcessException"></exception>
+        internal static async Task<bool> UninstallApp(string deviceIdentifier, string packageName)
+        {
+            bool result = false;
+
+            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm uninstall -k --user 0 {packageName}");
+
+            if (_filteredOutput.Count > 0)
+            {
+                result = _filteredOutput.Last().Equals("Success") ? true : false;
+            }
+
+            return result;
         }
 
         ////////////////////////////////////////////////////////////////////////
