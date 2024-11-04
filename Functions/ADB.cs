@@ -1,5 +1,5 @@
-﻿using GoogleBackupManager.Model.Exceptions;
-using GoogleBackupManager.Model;
+﻿using AndroidDeviceManager.Model.Exceptions;
+using AndroidDeviceManager.Model;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace GoogleBackupManager.Functions
+namespace AndroidDeviceManager.Functions
 {
     internal static class ADB
     {

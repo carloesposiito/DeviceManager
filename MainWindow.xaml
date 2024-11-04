@@ -1,4 +1,4 @@
-﻿<Window x:Class="GoogleBackupManager.MainWindow"
+﻿<Window x:Class="AndroidDeviceManager.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -18,7 +18,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/GoogleBackupManager;component/UI/ApplicationStyles.xaml" />
+                <ResourceDictionary Source="/AndroidDeviceManager;component/UI/ApplicationStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>

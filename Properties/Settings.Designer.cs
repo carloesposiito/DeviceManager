@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace GoogleBackupManager.Properties
+namespace AndroidDeviceManager.Properties
 {
 
 

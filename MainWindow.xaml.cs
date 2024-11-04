@@ -1,21 +1,21 @@
-﻿using GoogleBackupManager.Model.Exceptions;
-using GoogleBackupManager.Functions;
-using GoogleBackupManager.Model;
+﻿using AndroidDeviceManager.Model.Exceptions;
+using AndroidDeviceManager.Functions;
+using AndroidDeviceManager.Model;
 using System;
 using System.Windows;
 using System.Windows.Input;
 using System.Net;
-using GoogleBackupManager.UI;
+using AndroidDeviceManager.UI;
 using System.Linq;
 using System.IO;
 using System.Windows.Controls;
 using System.Threading;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static GoogleBackupManager.Functions.Utils;
+using static AndroidDeviceManager.Functions.Utils;
 using System.Diagnostics;
 
-namespace GoogleBackupManager
+namespace AndroidDeviceManager
 {
     public partial class MainWindow : Window
     {
@@ -343,6 +343,7 @@ namespace GoogleBackupManager
 
                 try
                 {
+                    WriteToOutput("Closing program...");
                     await ADB.CloseConnection();
                 }
                 catch (Exception ex)

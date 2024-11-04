@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace GoogleBackupManager
+namespace AndroidDeviceManager
 {
     /// <summary>
     /// Logica di interazione per App.xaml

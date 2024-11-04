@@ -1,13 +1,13 @@
-﻿using GoogleBackupManager.Model;
-using GoogleBackupManager.Model.Exceptions;
-using GoogleBackupManager.UI;
+﻿using AndroidDeviceManager.Model;
+using AndroidDeviceManager.Model.Exceptions;
+using AndroidDeviceManager.UI;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Windows.Forms;
 
-namespace GoogleBackupManager.Functions
+namespace AndroidDeviceManager.Functions
 {
     internal static class Utils
     {

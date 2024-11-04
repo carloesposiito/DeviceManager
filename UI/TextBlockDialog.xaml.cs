@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Input;
 
-namespace GoogleBackupManager.UI
+namespace AndroidDeviceManager.UI
 {
     /// <summary>
     /// Logica di interazione per TextBlockDialog.xaml

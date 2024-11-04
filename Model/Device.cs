@@ -1,4 +1,4 @@
-﻿namespace GoogleBackupManager.Model
+﻿namespace AndroidDeviceManager.Model
 {
     internal class Device
     {

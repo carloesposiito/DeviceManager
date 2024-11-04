@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace GoogleBackupManager.UI
+namespace AndroidDeviceManager.UI
 {
     /// <summary>
     /// Logica di interazione per WaitingDialog.xaml

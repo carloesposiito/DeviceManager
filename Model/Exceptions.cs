@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GoogleBackupManager.Model.Exceptions
+namespace AndroidDeviceManager.Model.Exceptions
 {
     /// <summary>
     /// Exception thrown when platform tools folder is not found.
