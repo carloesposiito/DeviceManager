@@ -1,0 +1,227 @@
+﻿<UserControl x:Class="DeviceManager.UC_Device"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:DeviceManager"
+             xmlns:converters="clr-namespace:DeviceManager.Converters"
+             mc:Ignorable="d"
+             d:Visibility="Visible"
+             Height="Auto"
+             Visibility="Collapsed"
+             Width="Auto">
+
+    <UserControl.Resources>
+        <converters:Converter_BooleanToString TrueValue="Wireless"
+                                              FalseValue="USB"
+                                              x:Key="Converter_BooleanToString" />
+        <converters:Converter_AuthStatusToString x:Key="Converter_AuthStatusToString" />
+        <converters:Converter_AuthStatusToVisibility x:Key="Converter_AuthStatusToVisibility" />
+        <converters:Converter_AuthStatusToVisibility_Reverse x:Key="Converter_AuthStatusToVisibility_Reverse" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!--Smartphone-->
+        <Grid Background="Transparent"
+              Grid.Column="0"
+              Height="340"
+              Margin="0,0,10,0"
+              Width="170">
+            <Border Background="Gray"
+                    CornerRadius="15">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="15" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!--Fake camera-->
+                    <Border Background="Black"
+                            CornerRadius="7.5"
+                            Height="7.5"
+                            Margin="1.25"
+                            Width="7.5" />
+
+                    <Border Background="Black"
+                            CornerRadius="7.5"
+                            Grid.Row="1"
+                            Padding="3"
+                            Margin="7.5,0,7.5,10">
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="50*" />
+                                <RowDefinition Height="50*" />
+                            </Grid.RowDefinitions>
+
+                            <!--Image-->
+                            <Border Grid.Row="0"
+                                    Padding="0,15"
+                                    VerticalAlignment="Center">
+                                <Image Stretch="Uniform"
+                                       x:Name="img_AndroidLogo" />
+                            </Border>
+
+                            <Grid Grid.Row="1"
+                                  VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!--Name and ID-->
+                                <Border Grid.Row="0"
+                                        Padding="0,0,0,10"
+                                        VerticalAlignment="Center">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Label Content="Model &amp; ID:"
+                                               Grid.Row="0"
+                                               Style="{StaticResource lbl_Title}" />
+
+                                        <Label d:Content="Pixel 8a"
+                                               Content="{Binding Model}"
+                                               Grid.Row="1"
+                                               Style="{StaticResource lbl_Description}" />
+
+                                        <Label d:Content="[ADB123]"
+                                               Content="{Binding IdDescription}"
+                                               FontSize="11"
+                                               FontWeight="Normal"
+                                               Grid.Row="2"
+                                               Style="{StaticResource lbl_Description}" />
+                                    </Grid>
+                                </Border>
+
+                                <!--Auth status-->
+                                <Border Grid.Row="1"
+                                        Padding="0,0,0,10"
+                                        VerticalAlignment="Center">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Label Content="Status:"
+                                               Grid.Row="0"
+                                               Style="{StaticResource lbl_Title}" />
+
+                                        <Label d:Content="Authorized"
+                                               Content="{Binding AuthStatus}"
+                                               Grid.Row="1"
+                                               Style="{StaticResource lbl_Description}" />
+
+                                    </Grid>
+                                </Border>
+
+                                <!--Wireless connected-->
+                                <Border Grid.Row="2"
+                                        Padding="0,0,0,10"
+                                        VerticalAlignment="Center">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Label Content="Connection:"
+                                               Grid.Row="0"
+                                               Style="{StaticResource lbl_Title}" />
+
+                                        <Label d:Content="USB"
+                                               Content="{Binding WirelessConnected, Converter={StaticResource Converter_BooleanToString}}"
+                                               Grid.Row="1"
+                                               Style="{StaticResource lbl_Description}" />
+
+                                    </Grid>
+                                </Border>
+
+                            </Grid>
+
+                        </Grid>
+                    </Border>
+
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!--Buttons-->
+        <Grid Grid.Column="1"
+              Margin="10,0,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Margin="0,0,0,5"
+                    Style="{StaticResource border_BtnCommon}"
+                    Visibility="{Binding AuthStatus, Converter={StaticResource Converter_AuthStatusToVisibility}}">
+                <Button Content="Authorize device"
+                        Style="{StaticResource btn_Common}" />
+            </Border>
+
+            <Grid Grid.Row="1"
+                  Visibility="{Binding AuthStatus, Converter={StaticResource Converter_AuthStatusToVisibility_Reverse}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0"
+                        d:Margin="0,5,0,5"
+                        Margin="0,0,0,5"
+                        Style="{StaticResource border_BtnCommon}">
+                    <Button Content="Extract from device"
+                            Style="{StaticResource btn_Common}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="2"
+                  Visibility="{Binding AuthStatus, Converter={StaticResource Converter_AuthStatusToVisibility_Reverse}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0"
+                        Style="{StaticResource border_BtnCommon}">
+                    <Button Content="Transfer to device"
+                            Style="{StaticResource btn_Common}" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="3"
+                  Visibility="{Binding AuthStatus, Converter={StaticResource Converter_AuthStatusToVisibility_Reverse}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0"
+                        Margin="0,5,0,0"
+                        Style="{StaticResource border_BtnCommon}">
+                    <Button Content="Uninstall apps"
+                            Style="{StaticResource btn_Common}" />
+                </Border>
+            </Grid>
+
+        </Grid>
+
+    </Grid>
+    
+</UserControl>
