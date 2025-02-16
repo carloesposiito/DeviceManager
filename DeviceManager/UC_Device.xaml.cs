@@ -48,20 +48,6 @@ namespace DeviceManager
             InitializeComponent();
             this.DataContext = this;
             _device = device;
-
-            #region "Solve Android logo image"
-
-            string androidLogoImagePath = $"{Directory.GetCurrentDirectory()}\\Resources\\Android_Logo.png";
-
-            BitmapImage androidLogoBitmapImage = new BitmapImage();
-            androidLogoBitmapImage.BeginInit();
-            androidLogoBitmapImage.UriSource = new Uri(androidLogoImagePath, UriKind.Absolute);
-            androidLogoBitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-            androidLogoBitmapImage.EndInit();
-
-            img_AndroidLogo.Source = androidLogoBitmapImage;
-
-            #endregion
         }
     }
 }

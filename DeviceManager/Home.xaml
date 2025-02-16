@@ -8,8 +8,9 @@
         mc:Ignorable="d"
         d:Visibility="Visible"
         AllowsTransparency="True"
-        Background="Transparent"
+        Background="LightGray"
         Height="650"
+        ResizeMode="NoResize"
         Title="MainWindow"
         Visibility="Collapsed"
         Width="350"
@@ -22,20 +23,21 @@
                                               FalseValue=""
                                               x:Key="Converter_BooleanToString" />
         <converters:Converter_InverseBoolean x:Key="Converter_InverseBoolean" />
+        <converters:Converter_AuthStatusToVisibility x:Key="Converter_AuthStatusToVisibility" />
+        <converters:Converter_AuthStatusToVisibility_Reverse x:Key="Converter_AuthStatusToVisibility_Reverse" />
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="30" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--#region Top border -->
+        <!--#region Top border for dragmove -->
 
         <Border Background="LightGray"
-                CornerRadius="10,10,0,0"
                 Height="15"
                 Grid.Row="0"
                 MouseLeftButtonDown="border_Upper_MouseLeftButtonDown">
@@ -46,13 +48,22 @@
         <!--#region Menu -->
 
         <Menu Background="LightGray"
+              BorderThickness="0"
+              BorderBrush="Transparent"
               Grid.Row="1">
             <MenuItem Header="Scan"
-                      Click="menuItem_ScanDevices_Click"
                       IsEnabled="{Binding IsBusy, Converter={StaticResource Converter_InverseBoolean}}"
-                      Margin="5,2.5,0,2.5"
+                      Margin="5,0,0,0"
                       Style="{StaticResource menuItem_Common}"
-                      x:Name="menuItem_ScanDevices" />
+                      x:Name="menuItem_ScanDevices">
+
+                <MenuItem Header="Scan devices"
+                          Click="menuItem_ScanDevices_Click"
+                          IsCheckable="False"/>
+                
+                <MenuItem Header="Connect wireless device" IsCheckable="False" />
+
+            </MenuItem>
 
             <MenuItem Header="Devices"
                       Style="{StaticResource menuItem_Common}"
@@ -71,64 +82,95 @@
 
         <Grid Background="LightGray"
               Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             
+            <!--Active device section-->
+            <StackPanel HorizontalAlignment="Center"
+                        Margin="0,25"
+                        x:Name="stackPanel_Devices">
 
-            <Border Grid.Row="0"
-                    HorizontalAlignment="Center"
-                    Margin="0,20">
-                <StackPanel Grid.Column="1"
-                            x:Name="stackPanel_Devices">
+                <!--#region Fake device for designer mode -->
 
-                    <!--#region Fake device for designer mode -->
+                <d:Border Height="300"
+                          Width="150"
+                          Background="Gray"
+                          CornerRadius="15">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="15" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                    <d:Border Height="300"
-                              Width="150"
-                              Background="Gray"
-                              CornerRadius="15">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="15" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
+                        <Border Background="Black"
+                                CornerRadius="7.5"
+                                Height="7.5"
+                                Margin="1.25"
+                                Width="7.5" />
 
-                            <Border Background="Black"
-                                    CornerRadius="7.5"
-                                    Height="7.5"
-                                    Margin="1.25"
-                                    Width="7.5" />
+                        <Border Background="Black"
+                                CornerRadius="7.5"
+                                Grid.Row="1"
+                                Padding="3"
+                                Margin="7.5,0,7.5,10">
+                        </Border>
 
-                            <Border Background="Black"
-                                    CornerRadius="7.5"
-                                    Grid.Row="1"
-                                    Padding="3"
-                                    Margin="7.5,0,7.5,10">
-                            </Border>
+                    </Grid>
+                </d:Border>
 
-                        </Grid>
-                    </d:Border>
+                <!--#endregion-->
 
-                    <!--#endregion-->
+            </StackPanel>
 
-                </StackPanel>
-            </Border>
+            <!--Buttons section-->
+            <Grid Grid.Row="1" x:Name="grid_DeviceCommands">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-           
+                <Border Grid.Row="0" Style="{StaticResource border_BtnCommon}" Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource Converter_AuthStatusToVisibility}}">
+                    <Button Content="Authorize device"
+                            Style="{StaticResource btn_Common}" />
+                </Border>
 
+                <Border Grid.Row="1"
+                        Style="{StaticResource border_BtnCommon}">
+                    <Button Content="Backup"
+                            Style="{StaticResource btn_Common}" />
+                </Border>
+
+                <Border Grid.Row="2"
+                        Style="{StaticResource border_BtnCommon}">
+                    <Button Content="Restore"
+                            Style="{StaticResource btn_Common}" />
+                </Border>
+
+                <Border Grid.Row="3"
+                        Style="{StaticResource border_BtnCommon}">
+                    <Button Content="Uninstall apps"
+                            Style="{StaticResource btn_Common}" />
+                </Border>
+
+            </Grid>
+            
         </Grid>
 
         <!--#region Bottom border -->
 
-        <Border Background="LightGray"
-                CornerRadius="0,0,10,10"
-                Grid.Row="3">
-
+        <Border Grid.Row="3">
             <Label d:Content="Debug mode, development in progress!"
                    Content="{Binding IsBusy, Converter={StaticResource Converter_BooleanToString}}"
-                   FontSize="8"
+                   FontSize="12"
                    FontStyle="Italic"
                    Foreground="Black"
                    Grid.Row="2"
                    HorizontalContentAlignment="Center"
+                   Padding="0,10"
                    x:Name="lbl_CurrentOperation" />
 
         </Border>
