@@ -1,8 +1,5 @@
 ﻿using PlatformTools;
-using System;
-using System.IO;
 using System.Windows.Controls;
-using System.Windows.Media.Imaging;
 
 namespace DeviceManager
 {
@@ -17,29 +14,9 @@ namespace DeviceManager
         #region "Properties"
 
         /// <summary>
-        /// Device ID.
+        /// Device object.
         /// </summary>
-        public string Id { get => _device.Id; }
-
-        /// <summary>
-        /// Device name.
-        /// </summary>
-        public string IdDescription { get => _device.IdDescription; }
-
-        /// <summary>
-        /// Device name.
-        /// </summary>
-        public string Model { get => _device.Model; }
-
-        /// <summary>
-        /// Device authorization status.
-        /// </summary>
-        public Enums.DeviceAuthStatus AuthStatus { get => _device.AuthStatus; }
-
-        /// <summary>
-        /// Describes if device is wireless connected.
-        /// </summary>
-        public bool WirelessConnected { get => _device.WirelessConnected; }
+        public Device Device { get => _device; }
 
         #endregion
 

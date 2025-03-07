@@ -14,8 +14,8 @@ namespace DeviceManager
         #region "Private variables"
 
         private bool _isBusy = false;
-        private int _activeDevice;
-        private UIElementCollection UC_Devices;
+        private int _activeDeviceIndex;
+        private UIElementCollection _userControlDevices;
 
         #endregion
 
@@ -51,18 +51,81 @@ namespace DeviceManager
         /// <summary>
         /// Describes index of active device.
         /// </summary>
-        public int ActiveDevice
+        public int ActiveDeviceIndex
         {
-            get => _activeDevice;
+            get => _activeDeviceIndex;
             set
             {
-                if (_activeDevice != value)
+                if (_activeDeviceIndex != value && value >= 0 && value < _userControlDevices.Count)
                 {
-                    _activeDevice = value;
-                    OnPropertyChanged();
+                    _activeDeviceIndex = value;
+                    OnPropertyChanged(nameof(ActiveDevice));
+                    OnPropertyChanged(nameof(ActiveDeviceIndex));
                 }
             }
         }
+
+        public Device ActiveDevice
+        {
+            get
+            {
+                if (_activeDeviceIndex >= 0 && _activeDeviceIndex < _userControlDevices.Count)
+                {
+                    var ucDevice = _userControlDevices[_activeDeviceIndex] as UC_Device;
+                    return ucDevice?.Device;
+                }
+                return null;
+            }
+            set
+            {
+                if (_activeDeviceIndex >= 0 && _activeDeviceIndex < _userControlDevices.Count)
+                {
+                    var currentUcDevice = _userControlDevices[_activeDeviceIndex] as UC_Device;
+                    if (currentUcDevice != null && currentUcDevice.Device != value)
+                    {
+                        currentUcDevice.Device = value;
+                        OnPropertyChanged(nameof(ActiveDevice));
+                    }
+                }
+            }
+        }
+
+        ///// <summary>
+        ///// Describes index of active device.
+        ///// </summary>
+        //public int ActiveDeviceIndex
+        //{
+        //    get => _activeDeviceIndex;
+        //    set
+        //    {
+        //        if (_activeDeviceIndex != value)
+        //        {
+        //            _activeDeviceIndex = value;
+        //            OnPropertyChanged();
+        //        }
+        //    }
+        //}
+
+        //public Device ActiveDevice
+        //{
+        //    get
+        //    {
+        //        var ucDevice = _userControlDevices[_activeDeviceIndex] as UC_Device;
+        //        return ucDevice.Device;
+        //    }
+        //    set
+        //    {
+        //        var previousUcDevice = _userControlDevices[_activeDeviceIndex - 1] as UC_Device;
+        //        var currentUcDevice = _userControlDevices[_activeDeviceIndex] as UC_Device;
+
+
+        //        if (currentUcDevice != previousUcDevice)
+        //        {
+        //            ActiveDevice = currentUcDevice.Device;
+        //            OnPropertyChanged();
+        //        }
+        //    }
+        //}
 
         #endregion
 
@@ -71,7 +134,7 @@ namespace DeviceManager
             InitializeComponent();
             DataContext = this;
             this.Loaded += Window_Loaded;
-            UC_Devices = stackPanel_Devices.Children;
+            _userControlDevices = stackPanel_Devices.Children;
         }
 
         #region "Form events"
@@ -99,19 +162,19 @@ namespace DeviceManager
             MenuItem clickedMenuItem = sender as MenuItem;
             int clickedMenuItemIndex = menuItem_Devices.Items.IndexOf(clickedMenuItem);
 
-            if (!clickedMenuItemIndex.Equals(ActiveDevice))
+            if (!clickedMenuItemIndex.Equals(ActiveDeviceIndex))
             {
                 // Hide previous UC_Device user control
                 // Uncheck previous device MenuItem
-                UC_Devices[ActiveDevice].Visibility = Visibility.Collapsed;
-                var previousMenuItem = menuItem_Devices.Items[ActiveDevice] as MenuItem;
+                _userControlDevices[ActiveDeviceIndex].Visibility = Visibility.Collapsed;
+                var previousMenuItem = menuItem_Devices.Items[ActiveDeviceIndex] as MenuItem;
                 previousMenuItem.IsChecked = false;
 
                 // Update active device number
                 // Show current UC_Device user control
                 // Check active device MenuItem
-                ActiveDevice = clickedMenuItemIndex;
-                UC_Devices[ActiveDevice].Visibility = Visibility.Visible;
+                ActiveDeviceIndex = clickedMenuItemIndex;
+                _userControlDevices[ActiveDeviceIndex].Visibility = Visibility.Visible;
                 clickedMenuItem.IsChecked = true;
             }
         }
@@ -147,7 +210,7 @@ namespace DeviceManager
                     // Also refresh devices count
                     // This is the only point where it's value changes
                     // So an ObservableColletion is avoided
-                    UC_Devices.Clear();
+                    _userControlDevices.Clear();
                     menuItem_Devices.Items.Clear();
                     OnPropertyChanged(nameof(DevicesCount));
 
@@ -166,7 +229,7 @@ namespace DeviceManager
                     // And also add it into menu item
                     foreach (Device foundDevice in foundDevices)
                     {
-                        UC_Devices.Add(new UC_Device(foundDevice));
+                        _userControlDevices.Add(new UC_Device(foundDevice));
 
                         var deviceMenuItem = new MenuItem();
                         deviceMenuItem.Header = foundDevice.Model;
@@ -179,9 +242,9 @@ namespace DeviceManager
 
                     if (DevicesCount > 0)
                     {
-                        ActiveDevice = 0;
-                        UC_Devices[ActiveDevice].Visibility = Visibility.Visible;
-                        MenuItem activeMenuItem = menuItem_Devices.Items[ActiveDevice] as MenuItem;
+                        ActiveDeviceIndex = 0;
+                        _userControlDevices[ActiveDeviceIndex].Visibility = Visibility.Visible;
+                        MenuItem activeMenuItem = menuItem_Devices.Items[ActiveDeviceIndex] as MenuItem;
                         activeMenuItem.IsChecked = true;
                     }
 
@@ -190,7 +253,7 @@ namespace DeviceManager
                 }
                 catch (Exception ex)
                 {
-                    UC_Devices.Clear();
+                    _userControlDevices.Clear();
                     MessageBox.Show($"Error while scanning devices!\n{ex.Message}");
                 }
                 finally

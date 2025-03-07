@@ -69,7 +69,7 @@
                                        Style="{StaticResource lbl_Title}" />
 
                                 <Label d:Content="Pixel 8a"
-                                       Content="{Binding Model}"
+                                       Content="{Binding Device.Model}"
                                        Grid.Row="1"
                                        Style="{StaticResource lbl_Description}" />
 
@@ -94,7 +94,7 @@
                                        Style="{StaticResource lbl_Title}" />
 
                                 <Label d:Content="[ADB123]"
-                                       Content="{Binding Id}"
+                                       Content="{Binding Device.Id}"
                                        Grid.Row="1"
                                        Style="{StaticResource lbl_Description}" />
 
@@ -119,7 +119,7 @@
                                        Style="{StaticResource lbl_Title}" />
 
                                 <Label d:Content="Authorized"
-                                       Content="{Binding AuthStatus}"
+                                       Content="{Binding Device.AuthStatus}"
                                        Grid.Row="1"
                                        Style="{StaticResource lbl_Description}" />
 
@@ -144,7 +144,7 @@
                                        Style="{StaticResource lbl_Title}" />
 
                                 <Label d:Content="USB"
-                                       Content="{Binding WirelessConnected, Converter={StaticResource Converter_BooleanToString}}"
+                                       Content="{Binding Device.WirelessConnected, Converter={StaticResource Converter_BooleanToString}}"
                                        Grid.Row="1"
                                        Style="{StaticResource lbl_Description}" />
 
