@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace PlatformTools
 {
@@ -16,13 +17,8 @@ namespace PlatformTools
 
         #region "Private variables"
 
-        // Output variables
         private static List<string> _rawOutput = new List<string>();
         private static List<string> _output = new List<string>();
-
-        #endregion
-
-        #region "Properties"
 
         #endregion
 
@@ -45,11 +41,13 @@ namespace PlatformTools
                     await ExecuteCommand("adb start-server");
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.WriteLine(
+                operationResult = false;
+
+                MessageBox.Show(
                     $"[Initialize]\n" +
-                    $"{ex.Message}\n"
+                    $"{exception.Message}\n"
                     );
             }
             
@@ -147,17 +145,128 @@ namespace PlatformTools
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.WriteLine(
-                    $"[ScanDevices]\n" +
-                    $"{ex.Message}\n"
-                    );
-
                 foundDevices.Clear();
+
+                MessageBox.Show(
+                    $"[ScanDevices]\n" +
+                    $"{exception.Message}\n"
+                    );
             }
 
             return foundDevices;
+        }
+
+        /// <summary>
+        /// Tries to authorize a device given its ID.
+        /// </summary>
+        /// <param name="deviceIdentifier">Device ID.</param>
+        /// <returns>True if authorization successful, otherwise false.</returns>
+        public static async Task<bool> AuthorizeDevice(string deviceIdentifier)
+        {
+            bool authResult = false;
+
+            try
+            {
+                // Restart server to permit to show popup on device
+                await ExecuteCommand("adb kill-server");
+                await ExecuteCommand("adb start-server");
+
+                // Show message waiting for authorization
+                MessageBox.Show($"Please authorize this computer via the popup displayed on device screen (ID = {deviceIdentifier}), then click OK!");
+
+                // Send devices command to check device new auth status
+                await ExecuteCommand("adb devices");
+
+                // Output should contain only connected devices
+                // If output contains device id and "device" string it means it's authorized
+                authResult = _output.Any(str => str.Contains(deviceIdentifier) && str.Contains("device"));
+            }
+            catch (Exception exception)
+            {
+                authResult = false;
+
+                MessageBox.Show(
+                    $"[AuthorizeDevice]\n" +
+                    $"{exception.Message}\n"
+                    );
+            }
+
+            return authResult;
+        }
+
+        /// <summary>
+        /// Connects to a device via Wireless ADB through its IP and port.
+        /// </summary>
+        /// <param name="deviceIp">Device IP.</param>
+        /// <param name="devicePort">Device port.</param>
+        /// <returns>True if connection successful, otherwise false.</returns>
+        public static async Task<bool> ConnectWirelessDevice(string deviceIp, string devicePort)
+        {
+            bool connectionResult = false;
+
+            try
+            {
+                await ExecuteCommand($"adb connect {deviceIp}:{devicePort}");
+
+                if (_output.Count > 0)
+                {
+                    // Save output before clear it
+                    string commandOutput = _output.Last();
+
+                    // Check received output
+                    if (!string.IsNullOrWhiteSpace(commandOutput) && commandOutput.Contains("connected"))
+                    {
+                        connectionResult = true;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                connectionResult = false;
+
+                MessageBox.Show(
+                    $"[ConnectWirelessDevice]\n" +
+                    $"{exception.Message}\n"
+                    );
+            }
+
+            return connectionResult;
+        }
+
+        /// <summary>
+        /// Pair a device via Wireless ADB through its device IP, port and pairing code.
+        /// </summary>
+        /// <param name="deviceIp">Device IP.</param>
+        /// <param name="devicePort">Device port.</param>
+        /// <param name="devicePairingCode">Device pairing code.</param>
+        /// <returns>True if pairing is successful, otherwise false.</returns>
+        public static async Task<bool> PairWirelessDevice(string deviceIp, string devicePort, string devicePairingCode)
+        {
+            bool pairingResult = false;
+
+            try
+            {
+                // Send pairing command
+                await ExecuteCommand($"adb pair {deviceIp}:{devicePort}", devicePairingCode);
+
+                if (_output.Count > 0 && _output.Last().Contains("paired"))
+                {
+                    pairingResult = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                pairingResult = false;
+
+                MessageBox.Show(
+                    $"[PairWirelessDevice]\n" +
+                    $"{exception.Message}\n"
+                    );
+            }
+
+            return pairingResult;
         }
 
         /// <summary>
@@ -168,6 +277,8 @@ namespace PlatformTools
         {
             await ExecuteCommand("adb kill-server");
         }
+
+        #region "Private functions"
 
         /// <summary>
         /// Executes an ADB command.<br/>
@@ -242,13 +353,14 @@ namespace PlatformTools
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(
+                MessageBox.Show(
                     $"[SendCommand]\n" +
                     $"{ex.Message}\n"
                     );
             }
         }
 
+        #endregion
     }
 }
 

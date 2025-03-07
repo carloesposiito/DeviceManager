@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace PlatformTools
 {
-    public class Utilities
+    internal class Utilities
     {
         #region "Constants"
 
@@ -68,16 +68,18 @@ CheckAgain:
                 {
                     if (Unzip(_platformToolsZip, _platformToolsDir))
                     {
-                        operationResult = true;
+                        operationResult = false;
                         goto CheckAgain;
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
+                operationResult = false; 
+                
                 Debug.WriteLine(
                     $"[CheckPlatformTools]\n" +
-                    $"{ex.Message}\n"
+                    $"{exception.Message}\n"
                     );
             }
 
@@ -124,6 +126,10 @@ CheckAgain:
             else if (command.Contains("pair") || command.Contains("mkdir"))
             {
                 waitingTime = 100;
+            }
+            else if (command.Contains("connect"))
+            {
+                waitingTime = 1000;
             }
             else if (command.Contains("uninstall"))
             {

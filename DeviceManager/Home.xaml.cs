@@ -83,7 +83,7 @@ namespace DeviceManager
                     var currentUcDevice = _userControlDevices[_activeDeviceIndex] as UC_Device;
                     if (currentUcDevice != null && currentUcDevice.Device != value)
                     {
-                        currentUcDevice.Device = value;
+                        //currentUcDevice.Device = value;
                         OnPropertyChanged(nameof(ActiveDevice));
                     }
                 }
