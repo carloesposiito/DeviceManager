@@ -1,17 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using PlatformTools;
 
 namespace DeviceManager
 {
-    /// <summary>
-    /// Logica di interazione per Homepage.xaml
-    /// </summary>
-    public partial class Homepage : Window
+    public partial class Homepage : Window, INotifyPropertyChanged
     {
         #region "Constants"
 
@@ -21,12 +20,57 @@ namespace DeviceManager
 
         #region "Private variables"
 
-        private List<Device> _connectedDevices = new List<Device>();
+        private bool _isFree = true;
+        private ObservableCollection<Device> _connectedDevices = new ObservableCollection<Device>();
+        private int _devicesCount = 0;
         private Device _activeDevice = null;
+        
 
         #endregion
 
         #region "Properties"
+
+        public bool IsFree
+        {
+            get => _isFree;
+            set
+            {
+                if (_isFree != value)
+                {
+                    _isFree = value;
+                    OnPropertyChanged(nameof(IsFree));
+                }
+            }
+        }
+
+        public ObservableCollection<Device> ConnectedDevices
+        {
+            get => _connectedDevices;
+            set
+            {
+                if (_connectedDevices != value)
+                {
+                    _connectedDevices = value;
+                    OnPropertyChanged(nameof(ConnectedDevices));
+
+                    // Refresh conncted devices count
+                    DevicesCount = _connectedDevices.Count;
+                }
+            }
+        }
+
+        public int DevicesCount
+        {
+            get => _devicesCount;
+            private set
+            {
+                if (_devicesCount != value)
+                {
+                    _devicesCount = value;
+                    OnPropertyChanged(nameof(DevicesCount));
+                }
+            }
+        }
 
         public Device ActiveDevice
         {
@@ -62,13 +106,7 @@ namespace DeviceManager
 
         private async void btn_ScanDevices_Click(object sender, RoutedEventArgs e)
         {
-            ResetControls();
-
-
-            _connectedDevices = await ADB.ScanDevices();
-
-
-            RefreshConnectedDevicesControls();
+            await ScanDevices();
         }       
 
         private void checkBox_PairingNeeded_Click(object sender, RoutedEventArgs e)
@@ -86,21 +124,46 @@ namespace DeviceManager
 
         private async void btn_ConnectWirelessDevice_Click(object sender, RoutedEventArgs e)
         {
-            bool connectionResult;
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+                    bool connectionResult;
 
-            if ((bool)checkBox_PairingNeeded.IsChecked)
-            {
-                connectionResult = await ADB.PairWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text, tb_DevicePairingCode.Text);
-            }
-            else
-            {
-                connectionResult = await ADB.ConnectWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text);
-            }
+                    if ((bool)checkBox_PairingNeeded.IsChecked)
+                    {
+                        connectionResult = await ADB.PairWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text, tb_DevicePairingCode.Text);
+                    }
+                    else
+                    {
+                        connectionResult = await ADB.ConnectWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text);
+                    }
+
+                    // Inform user of connection result
+                    MessageBox.Show(connectionResult ? "Connection succedeed! Please scan devices again." : "Connection failed! Please try again!");
+                }
+                catch (Exception exception)
+                {
+                    ConnectedDevices = new ObservableCollection<Device>();
+
+                    MessageBox.Show(
+                        $"[btn_ConnectWirelessDevice_Click]\n" +
+                        $"{exception.Message}\n"
+                        );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
+            }            
         }
 
         private void lb_ConnectedDevices_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
+#if DEBUG
             this.Title = TITLE;
+#endif
 
             ListBox senderListBox = sender as ListBox;
             Device selectedDevice = senderListBox.SelectedValue as Device;
@@ -108,40 +171,41 @@ namespace DeviceManager
             if (selectedDevice != null)
             {
                 ActiveDevice = selectedDevice;
+#if DEBUG
                 this.Title = $"{Title} [{ActiveDevice.Model}]";
+#endif
             }
         }
 
         #region "Functions"
 
-        private void ResetControls()
+        private async Task ScanDevices()
         {
-            // Hide connected devices
-            grid_ConnectedDevices.Visibility = Visibility.Collapsed;
-
-            // Clear scanned devices listbox
-            lb_ConnectedDevices.Items.Clear();
-        }
-
-        /// <summary>
-        /// Refresh controls realted to connected devices
-        /// </summary>
-        private void RefreshConnectedDevicesControls()
-        {
-            foreach (Device connectedDevice in _connectedDevices)
+            if (IsFree)
             {
-                lb_ConnectedDevices.Items.Add(connectedDevice);
-            }
+                try
+                {
+                    IsFree = false;
+                    ActiveDevice = null;
 
-            if (_connectedDevices.Count > 0)
-            {
-                grid_ConnectedDevices.Visibility = Visibility.Visible;
+                    // First clear connected devices list
+                    // Then scan again
+                    ConnectedDevices = new ObservableCollection<Device>();
+                    ConnectedDevices = new ObservableCollection<Device>(await ADB.ScanDevices());
+                }
+                catch (Exception exception)
+                {
+                    ConnectedDevices = new ObservableCollection<Device>();
 
-                // If only one device is connected, select it automatically
-                //if (_connectedDevices.Count.Equals(1))
-                //{
-                //    lb_ConnectedDevices.SelectedIndex = 0;
-                //}
+                    MessageBox.Show(
+                        $"[ScanDevices]\n" +
+                        $"{exception.Message}\n"
+                        );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
             }
         }
 

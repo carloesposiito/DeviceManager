@@ -64,12 +64,9 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Converters\Converter_AuthStatusToString.cs" />
-    <Compile Include="Converters\Converter_AuthStatusToVisibility_Reverse.cs" />
-    <Compile Include="Converters\Converter_AuthStatusToVisibility.cs" />
-    <Compile Include="Converters\Converter_BooleanToString.cs" />
+    <Compile Include="Converters\Converter_ActiveDeviceToIsEnabled.cs" />
     <Compile Include="Converters\Converter_DevicesCountToVisibility.cs" />
-    <Compile Include="Converters\Converter_InverseBoolean.cs" />
+    <Compile Include="Converters\Converter_IsFreeToCursor.cs" />
     <Compile Include="Converters\MultiConverter_ActiveDevice_AuthStatus_ToBoolean.cs" />
     <Compile Include="Homepage.xaml.cs">
       <DependentUpon>Homepage.xaml</DependentUpon>
@@ -113,5 +110,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

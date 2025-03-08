@@ -20,10 +20,12 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
-        <converters:Converter_ActiveDeviceToWindowTitle x:Key="converter_ActiveDeviceToTitle" />
+        <converters:Converter_IsFreeToCursor x:Key="converter_IsFreeToCursor"/>
+        <converters:Converter_DevicesCountToVisibility x:Key="converter_DevicesCountToVisibility"/>
+        <converters:Converter_ActiveDeviceToIsEnabled x:Key="converter_ActiveDeviceToIsEnabled"/>
     </Window.Resources>
 
-    <Grid>
+    <Grid Cursor="{Binding IsFree, Converter={StaticResource converter_IsFreeToCursor}}">
         <TabControl Margin="15" Padding="15,0">
 
             <TabItem Header="Devices">
@@ -48,12 +50,13 @@
                             <Button Click="btn_ScanDevices_Click"
                                     Content="Scan devices"
                                     Grid.Row="0"
+                                    IsEnabled="{Binding IsFree}"
                                     Style="{StaticResource btn_Default}"
                                     x:Name="btn_ScanDevices" />
 
                             <Grid Grid.Row="1"
                                   d:Visibility="Visible"
-                                  Visibility="Collapsed"
+                                  Visibility="{Binding DevicesCount, Converter={StaticResource converter_DevicesCountToVisibility}}"
                                   x:Name="grid_ConnectedDevices">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -73,6 +76,7 @@
                                 <ListBox DisplayMemberPath="Model"
                                          Grid.Row="2"
                                          d:Height="100"
+                                         ItemsSource="{Binding ConnectedDevices}"
                                          MaxHeight="100"
                                          SelectionChanged="lb_ConnectedDevices_SelectionChanged"
                                          SelectionMode="Single"
@@ -136,6 +140,7 @@
                             <Button Click="btn_ConnectWirelessDevice_Click"
                                     Content="Connect device"
                                     Grid.Row="7"
+                                    IsEnabled="{Binding IsFree}"
                                     Style="{StaticResource btn_Default}"
                                     x:Name="btn_ConnectWirelessDevice" />
                         </Grid>
@@ -144,7 +149,8 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Files">
+            <TabItem Header="Info" IsEnabled="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToIsEnabled}}">
+                
             </TabItem>
             
         </TabControl>
