@@ -143,6 +143,18 @@ namespace PlatformTools
 
                         foundDevices.Add(device);
                     }
+
+#if DEBUG
+                    // If no device in debug mode, add some fake devices
+                    if (foundDevices.Count.Equals(0))
+                    {
+                        int fakeDevicesCount = 3;
+                        for (int i = 1; i <= fakeDevicesCount; i++)
+                        {
+                            foundDevices.Add(new Device($"Device {foundDevices.Count + 1}\tdevice"));
+                        }
+                    }
+#endif
                 }
             }
             catch (Exception exception)

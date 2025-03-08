@@ -7,6 +7,8 @@
 
         <Style TargetType="Button"
                x:Key="btn_Default">
+            <Setter Property="Padding"
+                    Value="0,5" />
             <Setter Property="Margin"
                     Value="0,10" />
         </Style>
@@ -14,9 +16,17 @@
         <Style TargetType="CheckBox"
                x:Key="cb_Default">
             <Setter Property="Margin"
-                    Value="0,10" />
+                    Value="0,10,0,0" />
         </Style>
 
+        <Style TargetType="GroupBox"
+               x:Key="gp_Default">
+            <Setter Property="Margin"
+                    Value="0,10,0,0" />
+            <Setter Property="Padding"
+                    Value="5" />
+        </Style>
+        
         <Style TargetType="Label"
                x:Key="lbl_Default">
             <Setter Property="Margin"
@@ -25,113 +35,14 @@
                     Value="0" />
         </Style>
 
-        <Style TargetType="Label"
-               x:Key="lbl_Title">
-            <Setter Property="Foreground"
-                    Value="Gray" />
-            <Setter Property="FontSize"
-                    Value="15" />
-            <Setter Property="FontStyle"
-                    Value="Italic" />
-            <Setter Property="HorizontalContentAlignment"
-                    Value="Center" />
+        <Style TargetType="TextBox"
+               x:Key="tb_Default">
+            <Setter Property="Height"
+                    Value="22.5" />
             <Setter Property="Padding"
-                    Value="0" />
+                    Value="5,0,0,0" />
             <Setter Property="VerticalContentAlignment"
                     Value="Center" />
-        </Style>
-
-        <Style TargetType="Label"
-               x:Key="lbl_Description">
-            <Setter Property="Foreground"
-                    Value="White" />
-            <Setter Property="FontSize"
-                    Value="17" />
-            <Setter Property="FontWeight"
-                    Value="Bold" />
-            <Setter Property="HorizontalContentAlignment"
-                    Value="Center" />
-            <Setter Property="Padding"
-                    Value="0,1" />
-            <Setter Property="VerticalContentAlignment"
-                    Value="Center" />
-        </Style>
-
-        <Style x:Key="btn_Common"
-               TargetType="Button">
-            <Setter Property="Cursor"
-                    Value="Hand" />
-            <Setter Property="Background"
-                    Value="Transparent" />
-            <Setter Property="BorderThickness"
-                    Value="0" />
-            <Setter Property="FontSize"
-                    Value="13" />
-            <Setter Property="FontWeight"
-                    Value="SemiBold" />
-            <Setter Property="Foreground"
-                    Value="Black" />
-            <Setter Property="Height"
-                    Value="25" />
-            <Setter Property="Width"
-                    Value="170" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              Content="{TemplateBinding Content}" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="border_BtnCommon"
-               TargetType="Border">
-            <Setter Property="Background"
-                    Value="Gray" />
-            <Setter Property="CornerRadius"
-                    Value="10" />
-            <Setter Property="Cursor"
-                    Value="Hand" />
-            <Setter Property="Height"
-                    Value="25" />
-            <Setter Property="Margin"
-                    Value="0,5" />
-            <Setter Property="Width"
-                    Value="170" />
-        </Style>
-
-        <Style x:Key="menuItem_Common"
-               TargetType="MenuItem">
-            <Setter Property="FontSize"
-                    Value="14" />
-            <Setter Property="Foreground"
-                    Value="Black" />
-            <Setter Property="Margin"
-                    Value="0,2.5,0,2.5" />
-            <Setter Property="Padding"
-                    Value="7.5,2.5,7.5,2.5" />
-            <Setter Property="VerticalAlignment"
-                    Value="Center" />
-            <Setter Property="VerticalContentAlignment"
-                    Value="Center" />
-        </Style>
-
-        <Style x:Key="border_Separator"
-               TargetType="{x:Type Border}">
-            <Setter Property="BorderBrush"
-                    Value="DimGray" />
-            <Setter Property="BorderThickness"
-                    Value="2" />
-            <Setter Property="Height"
-                    Value="1" />
-            <Setter Property="Margin"
-                    Value="15,0" />
         </Style>
 
     </Application.Resources>

@@ -9,23 +9,22 @@
         Closed="Homepage_Closed"
         Height="600"
         Loaded="Homepage_LoadingCompleted"
+        MaxHeight="600"
+        MaxWidth="500"
+        MinHeight="600"
+        MinWidth="400"
+        ResizeMode="CanResizeWithGrip"
         Title="DeviceManager"
-        Width="500"
+        Width="400"
         WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
-        <converters:Converter_DevicesCountToVisibility x:Key="Converter_DeviceCountToVisibility" />
-        <converters:Converter_BooleanToString TrueValue="Operation in progress, please wait..."
-                                              FalseValue=""
-                                              x:Key="Converter_BooleanToString" />
-        <converters:Converter_InverseBoolean x:Key="Converter_InverseBoolean" />
-        <converters:Converter_AuthStatusToVisibility x:Key="Converter_AuthStatusToVisibility" />
-        <converters:Converter_AuthStatusToVisibility_Reverse x:Key="Converter_AuthStatusToVisibility_Reverse" />
+        <converters:Converter_ActiveDeviceToWindowTitle x:Key="converter_ActiveDeviceToTitle" />
     </Window.Resources>
 
     <Grid>
-        <TabControl Margin="15" Padding="15">
+        <TabControl Margin="15" Padding="15,0">
 
             <TabItem Header="Devices">
                 <Grid>
@@ -35,8 +34,11 @@
                     </Grid.RowDefinitions>
 
                     <GroupBox Grid.Row="0"
-                              Header="Connected devices"
-                              Padding="5">
+                              Style="{StaticResource gp_Default}">
+                        <GroupBox.Header>
+                            <Label Content="Devices"
+                                   FontStyle="Italic" />
+                        </GroupBox.Header>
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -49,25 +51,44 @@
                                     Style="{StaticResource btn_Default}"
                                     x:Name="btn_ScanDevices" />
 
-                            <ListBox DisplayMemberPath="Model"
-                                     Grid.Row="1"
-                                     d:Height="150"
-                                     MaxHeight="150"
-                                     x:Name="lb_ScannedDevices">
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Focusable"
-                                                Value="False" />
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                            </ListBox>
+                            <Grid Grid.Row="1"
+                                  d:Visibility="Visible"
+                                  Visibility="Collapsed"
+                                  x:Name="grid_ConnectedDevices">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Connected devices are listed below."
+                                       Margin="0,0,0,2.5"
+                                       Style="{StaticResource lbl_Default}"/>
+
+                                <Label Content="Please click on a device to set it as active:"
+                                       Grid.Row="1"
+                                       Margin="0,0,0,7.5"
+                                       Style="{StaticResource lbl_Default}" />
+
+                                <ListBox DisplayMemberPath="Model"
+                                         Grid.Row="2"
+                                         d:Height="100"
+                                         MaxHeight="100"
+                                         SelectionChanged="lb_ConnectedDevices_SelectionChanged"
+                                         SelectionMode="Single"
+                                         x:Name="lb_ConnectedDevices">
+                                </ListBox>
+
+                            </Grid>
 
                         </Grid>
                     </GroupBox>
 
                     <GroupBox Grid.Row="1"
-                              Header="Wireless connection"
-                              Padding="5">
+                              Style="{StaticResource gp_Default}">
+                        <GroupBox.Header>
+                            <Label Content="Wireless connection" FontStyle="Italic"/>
+                        </GroupBox.Header>
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -84,12 +105,14 @@
                                    Grid.Row="0"
                                    Style="{StaticResource lbl_Default}"/>
                             <TextBox Grid.Row="1"
+                                     Style="{StaticResource tb_Default}"
                                      x:Name="tb_DeviceIpAddress" />
 
                             <Label Content="Device port:"
                                    Grid.Row="2"
                                    Style="{StaticResource lbl_Default}"/>
                             <TextBox Grid.Row="3"
+                                     Style="{StaticResource tb_Default}"
                                      x:Name="tb_DevicePort" />
 
                             <CheckBox Click="checkBox_PairingNeeded_Click"
@@ -105,12 +128,13 @@
                                    Visibility="Collapsed"
                                    x:Name="lbl_DevicePairingCode" />
                             <TextBox Grid.Row="6"
+                                     Style="{StaticResource tb_Default}"
                                      d:Visibility="Visible"
                                      Visibility="Collapsed"
                                      x:Name="tb_DevicePairingCode" />
 
                             <Button Click="btn_ConnectWirelessDevice_Click"
-                                    Content="Pair Wireless device"
+                                    Content="Connect device"
                                     Grid.Row="7"
                                     Style="{StaticResource btn_Default}"
                                     x:Name="btn_ConnectWirelessDevice" />
@@ -121,11 +145,6 @@
             </TabItem>
 
             <TabItem Header="Files">
-                <ComboBox DisplayMemberPath="Model"
-                          Grid.Row="1"
-                          SelectedIndex="0"
-                          Visibility="Collapsed"
-                          x:Name="cb_ActiveDevice" />
             </TabItem>
             
         </TabControl>

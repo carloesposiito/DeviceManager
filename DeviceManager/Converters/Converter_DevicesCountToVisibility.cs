@@ -9,9 +9,9 @@ namespace DeviceManager.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is int)
+            if (value is int devicesNumber)
             {
-                return (int)value <= 1 ? Visibility.Collapsed : Visibility.Visible;
+                return devicesNumber.Equals(0) ? Visibility.Collapsed : Visibility.Visible;
             }
 
             throw new InvalidOperationException(

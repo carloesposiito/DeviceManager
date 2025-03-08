@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using PlatformTools;
 
 namespace DeviceManager
@@ -12,13 +13,33 @@ namespace DeviceManager
     /// </summary>
     public partial class Homepage : Window
     {
+        #region "Constants"
+
+        private const string TITLE = "DeviceManager";
+
+        #endregion
+
         #region "Private variables"
 
-        private List<Device> _scannedDevices = new List<Device>();
+        private List<Device> _connectedDevices = new List<Device>();
+        private Device _activeDevice = null;
 
         #endregion
 
         #region "Properties"
+
+        public Device ActiveDevice
+        {
+            get => _activeDevice;
+            set
+            {
+                if (_activeDevice != value)
+                {
+                    _activeDevice = value;
+                    OnPropertyChanged(nameof(ActiveDevice));
+                }
+            }
+        }
 
         #endregion
 
@@ -41,8 +62,13 @@ namespace DeviceManager
 
         private async void btn_ScanDevices_Click(object sender, RoutedEventArgs e)
         {
-            _scannedDevices = await ADB.ScanDevices();
-            RefreshScannedDevicesControls();
+            ResetControls();
+
+
+            _connectedDevices = await ADB.ScanDevices();
+
+
+            RefreshConnectedDevicesControls();
         }       
 
         private void checkBox_PairingNeeded_Click(object sender, RoutedEventArgs e)
@@ -72,21 +98,50 @@ namespace DeviceManager
             }
         }
 
+        private void lb_ConnectedDevices_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            this.Title = TITLE;
+
+            ListBox senderListBox = sender as ListBox;
+            Device selectedDevice = senderListBox.SelectedValue as Device;
+
+            if (selectedDevice != null)
+            {
+                ActiveDevice = selectedDevice;
+                this.Title = $"{Title} [{ActiveDevice.Model}]";
+            }
+        }
+
         #region "Functions"
 
-        private void RefreshScannedDevicesControls()
+        private void ResetControls()
         {
+            // Hide connected devices
+            grid_ConnectedDevices.Visibility = Visibility.Collapsed;
+
             // Clear scanned devices listbox
-            lb_ScannedDevices.Items.Clear();
+            lb_ConnectedDevices.Items.Clear();
+        }
 
-            // Clear active device combobox
-            cb_ActiveDevice.Items.Clear();
-
-            // For each scanned device add it to listbox and active device combobox
-            foreach (Device scannedDevice in _scannedDevices)
+        /// <summary>
+        /// Refresh controls realted to connected devices
+        /// </summary>
+        private void RefreshConnectedDevicesControls()
+        {
+            foreach (Device connectedDevice in _connectedDevices)
             {
-                lb_ScannedDevices.Items.Add(scannedDevice);
-                cb_ActiveDevice.Items.Add(scannedDevice);
+                lb_ConnectedDevices.Items.Add(connectedDevice);
+            }
+
+            if (_connectedDevices.Count > 0)
+            {
+                grid_ConnectedDevices.Visibility = Visibility.Visible;
+
+                // If only one device is connected, select it automatically
+                //if (_connectedDevices.Count.Equals(1))
+                //{
+                //    lb_ConnectedDevices.SelectedIndex = 0;
+                //}
             }
         }
 
@@ -103,5 +158,6 @@ namespace DeviceManager
 
         #endregion
 
+        
     }
 }

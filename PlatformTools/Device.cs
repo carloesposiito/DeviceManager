@@ -51,11 +51,7 @@ namespace PlatformTools
         /// Constructor of the class.
         /// </summary>
         // Permits to create device also from WPF, but only in debug mode
-#if DEBUG
-        public Device(string scannedDeviceLine)
-#else
         internal Device(string scannedDeviceLine)
-#endif
         {
             // Split device line into parts
             List<string> lineParts = scannedDeviceLine.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries).ToList();
