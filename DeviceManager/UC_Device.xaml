@@ -1,0 +1,162 @@
+﻿<UserControl x:Class="DeviceManager.UC_Device"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:DeviceManager"
+             xmlns:converters="clr-namespace:DeviceManager.Converters"
+             mc:Ignorable="d"
+             d:Visibility="Visible"
+             Height="Auto"
+             Visibility="Collapsed"
+             Width="Auto">
+
+    <UserControl.Resources>
+        <converters:Converter_BooleanToString TrueValue="Wireless"
+                                              FalseValue="USB"
+                                              x:Key="Converter_BooleanToString" />
+        <converters:Converter_AuthStatusToString x:Key="Converter_AuthStatusToString" />
+    </UserControl.Resources>
+
+    <!--Smartphone-->
+    <Grid Background="Transparent"
+          Grid.Column="0"
+          Height="350"
+          Width="180">
+        <Border Background="Gray"
+                CornerRadius="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="15" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--Camera-->
+                <Border Background="Black"
+                        CornerRadius="7.5"
+                        Height="7.5"
+                        Margin="1.25"
+                        Width="7.5" />
+
+                <Border Background="Black"
+                        CornerRadius="7.5"
+                        Grid.Row="1"
+                        Padding="3"
+                        Margin="7.5,0,7.5,10">
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+
+                        <!--Name-->
+                        <Border Grid.Row="0"
+                                VerticalAlignment="Center">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Model:"
+                                       Grid.Row="0"
+                                       Style="{StaticResource lbl_Title}" />
+
+                                <Label d:Content="Pixel 8a"
+                                       Content="{Binding Device.Model}"
+                                       Grid.Row="1"
+                                       Style="{StaticResource lbl_Description}" />
+
+                            </Grid>
+                        </Border>
+
+                        <!--Separator-->
+                        <Border Grid.Row="1"
+                                Style="{StaticResource border_Separator}" />
+
+                        <!--ID-->
+                        <Border Grid.Row="2"
+                                VerticalAlignment="Center">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="ID:"
+                                       Grid.Row="0"
+                                       Style="{StaticResource lbl_Title}" />
+
+                                <Label d:Content="[ADB123]"
+                                       Content="{Binding Device.Id}"
+                                       Grid.Row="1"
+                                       Style="{StaticResource lbl_Description}" />
+
+                            </Grid>
+                        </Border>
+
+                        <!--Separator-->
+                        <Border Grid.Row="3"
+                                Style="{StaticResource border_Separator}" />
+
+                        <!--Auth status-->
+                        <Border Grid.Row="4"
+                                VerticalAlignment="Center">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Status:"
+                                       Grid.Row="0"
+                                       Style="{StaticResource lbl_Title}" />
+
+                                <Label d:Content="Authorized"
+                                       Content="{Binding Device.AuthStatus}"
+                                       Grid.Row="1"
+                                       Style="{StaticResource lbl_Description}" />
+
+                            </Grid>
+                        </Border>
+
+                        <!--Separator-->
+                        <Border Grid.Row="5"
+                                Style="{StaticResource border_Separator}" />
+
+                        <!--Wireless connected-->
+                        <Border Grid.Row="6"
+                                VerticalAlignment="Center">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Connection:"
+                                       Grid.Row="0"
+                                       Style="{StaticResource lbl_Title}" />
+
+                                <Label d:Content="USB"
+                                       Content="{Binding Device.WirelessConnected, Converter={StaticResource Converter_BooleanToString}}"
+                                       Grid.Row="1"
+                                       Style="{StaticResource lbl_Description}" />
+
+                            </Grid>
+                        </Border>
+
+                    </Grid>
+
+                </Border>
+
+            </Grid>
+        </Border>
+    </Grid>
+
+</UserControl>
