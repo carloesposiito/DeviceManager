@@ -26,7 +26,7 @@
     </Window.Resources>
 
     <Grid Cursor="{Binding IsFree, Converter={StaticResource converter_IsFreeToCursor}}">
-        <TabControl Margin="15" Padding="15,0">
+        <TabControl IsEnabled="{Binding IsFree}" Margin="15" Padding="15,0">
 
             <TabItem Header="Devices">
                 <Grid>
@@ -50,7 +50,6 @@
                             <Button Click="btn_ScanDevices_Click"
                                     Content="Scan devices"
                                     Grid.Row="0"
-                                    IsEnabled="{Binding IsFree}"
                                     Style="{StaticResource btn_Default}"
                                     x:Name="btn_ScanDevices" />
 
