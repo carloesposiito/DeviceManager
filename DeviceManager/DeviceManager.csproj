@@ -64,10 +64,11 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Converters\Converter_ActiveDeviceToIsEnabled.cs" />
-    <Compile Include="Converters\Converter_DevicesCountToVisibility.cs" />
+    <Compile Include="Converters\Converter_AuthStatusToVisibility.cs" />
+    <Compile Include="Converters\Converter_AuthStatusToVisibility_Reverse.cs" />
+    <Compile Include="Converters\Converter_DevicesToVisibility.cs" />
     <Compile Include="Converters\Converter_IsFreeToCursor.cs" />
-    <Compile Include="Converters\MultiConverter_ActiveDevice_AuthStatus_ToBoolean.cs" />
+    <Compile Include="Converters\Converter_PairingToVisibility.cs" />
     <Compile Include="Homepage.xaml.cs">
       <DependentUpon>Homepage.xaml</DependentUpon>
     </Compile>

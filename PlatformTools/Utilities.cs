@@ -1,108 +1,105 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 
 namespace PlatformTools
 {
+    /// <summary>
+    /// Class holding all program utilities.<br/>
+    /// </summary>
     internal class Utilities
     {
-        #region "Constants"
-
-        // Patterns
-        private const string SENT_COMMAND_PATTERN = "adb ";
-        private const string DEVICES_COMMAND_PATTERN = "attached";
-        private const string MICROSOFT_PATTERN = "Microsoft";
-        private const string CURRENT_DIR_PATTERN = "PlatformTools";
-        private const string EXIT_COMMAND_PATTERN = "exit";
-
-        #endregion
-
-        #region "Private variables"
-
-        // Directories
-        private static string _currentDir = Directory.GetCurrentDirectory();
-        private static string _platformToolsZip = $"{_currentDir}\\Resources\\PlatformTools.zip";
-        private static string _platformToolsDir = $"{_currentDir}\\PlatformTools";
-
-        #endregion
-
-        #region "Properties"
+        /// <summary>
+        /// Constructor of the class.
+        /// </summary>
+        internal Utilities() { }
 
         /// <summary>
-        /// Platform tools directory.
+        /// Extracts zip archive to destination directory (created if not existing).<br/>
+        /// Throws exception if operation fails.
         /// </summary>
-        public static string PlatformToolsDir { get => _platformToolsDir; set => _platformToolsDir = value; }
-
-        #endregion
-
-        #region "Functions"
-
-        /// <summary>
-        /// Checks if platform tools folder and its files exist.
-        /// </summary>
-        /// <returns>True if platform tools are ok, otherwise false.</returns>
-        internal static bool CheckPlatformTools()
+        private void Unzip(string archivePath, string destinationPath)
         {
-            bool operationResult = false;
-
             try
             {
-CheckAgain:
-                if (Directory.Exists(_platformToolsDir))
+                if (!Directory.Exists(destinationPath))
                 {
-                    // Check files count (14)
-                    if (Directory.GetFiles(_platformToolsDir).Count().Equals(14))
+                    Directory.CreateDirectory(destinationPath);
+                }
+
+                ZipFile.ExtractToDirectory(archivePath, destinationPath);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Checks if all Platform Tools files exist.<br/>
+        /// If not, deletes folder and extract Platform Tools zip again.<br/>
+        /// Tries to do it for three times maximum.
+        /// Throws exception if operation fails.
+        /// </summary>
+        internal void CheckPlatformTools()
+        {
+            try
+            {
+                int maximumAttempts = 3;
+                int currentAttempt = 1;
+
+            CheckAgain:
+                if (Directory.Exists(Constants.PATHS.PLATFORM_TOOLS_DIR))
+                {
+                    if (!Directory.GetFiles(Constants.PATHS.PLATFORM_TOOLS_DIR).Count().Equals(14))
                     {
-                        operationResult = true;
-                    }
-                    else
-                    {
-                        Directory.Delete(_platformToolsDir, true);
-                        goto CheckAgain;
+                        Directory.Delete(Constants.PATHS.PLATFORM_TOOLS_DIR, true);
+                        if (currentAttempt <= maximumAttempts)
+                        {
+                            currentAttempt++;
+                            goto CheckAgain;
+                        }
+                        else
+                        {
+                            throw new Exception("Platform tools file count mismatch!");
+                        }
                     }
                 }
                 else
                 {
-                    if (Unzip(_platformToolsZip, _platformToolsDir))
-                    {
-                        operationResult = false;
-                        goto CheckAgain;
-                    }
+                    Unzip(Constants.PATHS.PLATFORM_TOOLS_ZIP, Constants.PATHS.PLATFORM_TOOLS_DIR);
+                    goto CheckAgain;
                 }
             }
-            catch (Exception exception)
+            catch (Exception)
             {
-                operationResult = false; 
-                
-                Debug.WriteLine(
-                    $"[CheckPlatformTools]\n" +
-                    $"{exception.Message}\n"
-                    );
+                throw;
             }
-
-            return operationResult;
         }
 
         /// <summary>
-        /// Writes a line into output if passes pattern filter.
+        /// Writes a line into output if passes pattern filters.<br/>
+        /// This avoids to write useless lines.
         /// </summary>
         /// <param name="line">Line to be written.</param>
         /// <param name="output">Reference to output string list.</param>
-        internal static void WriteOutput(string line, ref List<string> output)
+        internal void WriteOutput(string line, ref List<string> output)
         {
-            if
-            (
-                !line.Contains(SENT_COMMAND_PATTERN) &&
-                !line.Contains(DEVICES_COMMAND_PATTERN) &&
-                !line.Contains(MICROSOFT_PATTERN) &&
-                !line.Contains(CURRENT_DIR_PATTERN) &&
-                !line.Contains(EXIT_COMMAND_PATTERN)
-            )
+            if (line != null)
             {
-                output.Add(line);
+                if
+                (
+                    !line.Contains(Constants.PATTERNS.SENT_COMMAND_PATTERN) &&
+                    !line.Contains(Constants.PATTERNS.DEVICES_COMMAND_PATTERN) &&
+                    !line.Contains(Constants.PATTERNS.MICROSOFT_PATTERN) &&
+                    !line.Contains(Constants.PATTERNS.CURRENT_DIR_PATTERN) &&
+                    !line.Contains(Constants.PATTERNS.EXIT_COMMAND_PATTERN)
+                )
+                {
+                    output.Add(line);
+                }
             }
         }
 
@@ -111,9 +108,9 @@ CheckAgain:
         /// </summary>
         /// <param name="command">Command sent to device.</param>
         /// <returns>Time to wait to continue operations.</returns>
-        internal static int GetWaitingTime(string command)
+        internal int GetWaitingTime(string command)
         {
-            int waitingTime = 500;    
+            int waitingTime = 500;
 
             if (command.Equals("start-server"))
             {
@@ -135,42 +132,8 @@ CheckAgain:
             {
                 waitingTime = 10000;
             }
-            
+
             return waitingTime;
         }
-
-        /// <summary>
-        /// Extracts zip archive to selected directory.<br/>
-        /// It creates destination directory if not existing.
-        /// </summary>
-        /// <param name="archivePath">Path to zip archive.</param>
-        /// <param name="destinationPath">Path to destination directory.</param>
-        /// <returns>True if extracting successful, otherwise false.</returns>
-        internal static bool Unzip(string archivePath, string destinationPath)
-        {
-            bool operationResult = false;
-
-            try
-            {
-                if (!Directory.Exists(destinationPath))
-                {
-                    Directory.CreateDirectory(destinationPath);
-                }
-
-                ZipFile.ExtractToDirectory(archivePath, destinationPath);
-                operationResult = true;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(
-                    $"[Unzip]\n" +
-                    $"{ex.Message}\n"
-                    );
-            }
-
-            return operationResult;
-        }
-
-        #endregion
     }
 }

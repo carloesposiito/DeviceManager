@@ -12,23 +12,53 @@ namespace DeviceManager
 {
     public partial class Homepage : Window, INotifyPropertyChanged
     {
-        #region "Constants"
-
-        private const string TITLE = "DeviceManager";
-
-        #endregion
-
         #region "Private variables"
 
+        private ADB _adb;
+        private List<string> _rawOutput = new List<string>();
+        private List<string> _output = new List<string>();       
+        private bool _programInitialized = false;
         private bool _isFree = true;
         private ObservableCollection<Device> _connectedDevices = new ObservableCollection<Device>();
-        private int _devicesCount = 0;
-        private Device _activeDevice = null;
-        
+        private Device _activeDevice;
+        private bool _pairing = false;
 
         #endregion
 
         #region "Properties"
+
+        public List<string> RawOutput
+        {
+            get => _rawOutput;
+            set
+            {
+                _rawOutput = value;
+                OnPropertyChanged(nameof(RawOutput));
+            }
+        }
+
+        public List<string> Output
+        {
+            get => _output;
+            set
+            {
+                _output = value;
+                OnPropertyChanged(nameof(Output));
+            }
+        }
+
+        public bool ProgramInitialized
+        {
+            get => _programInitialized;
+            set
+            {
+                if (_programInitialized != value)
+                {
+                    _programInitialized = value;
+                    OnPropertyChanged(nameof(ProgramInitialized));
+                }
+            }
+        }
 
         public bool IsFree
         {
@@ -52,22 +82,6 @@ namespace DeviceManager
                 {
                     _connectedDevices = value;
                     OnPropertyChanged(nameof(ConnectedDevices));
-
-                    // Refresh conncted devices count
-                    DevicesCount = _connectedDevices.Count;
-                }
-            }
-        }
-
-        public int DevicesCount
-        {
-            get => _devicesCount;
-            private set
-            {
-                if (_devicesCount != value)
-                {
-                    _devicesCount = value;
-                    OnPropertyChanged(nameof(DevicesCount));
                 }
             }
         }
@@ -85,23 +99,41 @@ namespace DeviceManager
             }
         }
 
+        public bool Pairing
+        {
+            get => _pairing;
+            set
+            {
+                if (_pairing != value)
+                {
+                    _pairing = value;
+                    OnPropertyChanged(nameof(Pairing));
+                }
+            }
+        }
+
         #endregion
 
         public Homepage()
         {
             InitializeComponent();
             DataContext = this;
+            
+            // Initialize adb object
+            _adb = new ADB(ref _rawOutput, ref _output);
+            
+            // Add event to loading completed
             this.Loaded += Homepage_LoadingCompleted;
         }
 
         private async void Homepage_LoadingCompleted(object sender, RoutedEventArgs e)
         {
-            await ADB.Initialize();
+            ProgramInitialized = await _adb.Initialize();
         }
 
         private async void Homepage_Closed(object sender, System.EventArgs e)
         {
-            await ADB.KillServer();
+            await _adb.KillServer();
         }
 
         private async void btn_ScanDevices_Click(object sender, RoutedEventArgs e)
@@ -111,15 +143,7 @@ namespace DeviceManager
 
         private void checkBox_PairingNeeded_Click(object sender, RoutedEventArgs e)
         {
-            if ((bool)checkBox_PairingNeeded.IsChecked)
-            {
-                lbl_DevicePairingCode.Visibility = tb_DevicePairingCode.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                lbl_DevicePairingCode.Visibility = tb_DevicePairingCode.Visibility = Visibility.Collapsed;
-                tb_DevicePairingCode.Text = string.Empty;
-            }
+            Pairing = (bool)checkBox_PairingNeeded.IsChecked;
         }
 
         private async void btn_ConnectWirelessDevice_Click(object sender, RoutedEventArgs e)
@@ -129,51 +153,72 @@ namespace DeviceManager
                 try
                 {
                     IsFree = false;
-                    bool connectionResult;
 
-                    if ((bool)checkBox_PairingNeeded.IsChecked)
+                    bool operationResult = Pairing ? await _adb.PairWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text, tb_DevicePairingCode.Text) : await _adb.ConnectWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text);
+                    if (operationResult)
                     {
-                        connectionResult = await ADB.PairWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text, tb_DevicePairingCode.Text);
+                        await ScanDevices();
                     }
                     else
                     {
-                        connectionResult = await ADB.ConnectWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text);
+                        MessageBox.Show("Wireless connection failed! Please try again.");
                     }
-
-                    // Inform user of connection result
-                    MessageBox.Show(connectionResult ? "Connection succedeed! Please scan devices again." : "Connection failed! Please try again!");
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
-                    ConnectedDevices = new ObservableCollection<Device>();
-
-                    MessageBox.Show(
-                        $"[btn_ConnectWirelessDevice_Click]\n" +
-                        $"{exception.Message}\n"
-                        );
+                    MessageBox.Show
+                    (
+                        $"Error connecting wireless device! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
                 }
                 finally
                 {
                     IsFree = true;
                 }
-            }            
+            }
         }
 
-        private void lb_ConnectedDevices_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void cb_ConnectedDevices_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-#if DEBUG
-            this.Title = TITLE;
-#endif
-
-            ListBox senderListBox = sender as ListBox;
-            Device selectedDevice = senderListBox.SelectedValue as Device;
-
-            if (selectedDevice != null)
+            ComboBox comboBox = sender as ComboBox;
+            if (comboBox != null)
             {
-                ActiveDevice = selectedDevice;
+                Device selectedDevice = comboBox.SelectedItem as Device;
+                if (selectedDevice != null)
+                {
+                    ActiveDevice = selectedDevice;
+                }
+            }
+        }
+
+        private async void btn_AuthorizeDevice_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+
 #if DEBUG
-                this.Title = $"{Title} [{ActiveDevice.Model}]";
+                    ActiveDevice.AuthStatus = Enums.DeviceAuthStatus.AUTHORIZED;
+#else
+                    ActiveDevice.AuthStatus = await _adb.AuthorizeDevice(ActiveDevice.Id) ? Enums.DeviceAuthStatus.AUTHORIZED : Enums.DeviceAuthStatus.UNAUTHORIZED;
 #endif
+                    OnPropertyChanged(nameof(ActiveDevice));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show
+                    (
+                        $"Error authorizing wireless device! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
             }
         }
 
@@ -187,20 +232,18 @@ namespace DeviceManager
                 {
                     IsFree = false;
                     ActiveDevice = null;
-
-                    // First clear connected devices list
-                    // Then scan again
                     ConnectedDevices = new ObservableCollection<Device>();
-                    ConnectedDevices = new ObservableCollection<Device>(await ADB.ScanDevices());
+                    
+                    // Refresh
+                    ConnectedDevices = new ObservableCollection<Device>(await _adb.ScanDevices());
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
-                    ConnectedDevices = new ObservableCollection<Device>();
-
-                    MessageBox.Show(
-                        $"[ScanDevices]\n" +
-                        $"{exception.Message}\n"
-                        );
+                    MessageBox.Show
+                    (
+                        $"Error scanning devices! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
                 }
                 finally
                 {
@@ -222,6 +265,5 @@ namespace DeviceManager
 
         #endregion
 
-        
     }
 }

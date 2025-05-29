@@ -1,22 +1,24 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
-using System.Windows.Input;
+using PlatformTools;
 
 namespace DeviceManager.Converters
 {
-    internal class Converter_IsFreeToCursor : IValueConverter
+    internal class Converter_DevicesToVisibility : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            Cursor cursorResult = Cursors.Arrow;
+            Visibility resultVisibility = Visibility.Collapsed;
 
-            if (value is bool isFree)
+            if (value is ObservableCollection<Device> connectedDevices)
             {
-                cursorResult = isFree ? Cursors.Arrow : Cursors.Wait;
+                resultVisibility = connectedDevices.Count.Equals(0) ? Visibility.Collapsed : Visibility.Visible;
             }
 
-            return cursorResult;
+            return resultVisibility;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

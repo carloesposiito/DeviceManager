@@ -2,64 +2,139 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using System.Windows;
 
 namespace PlatformTools
 {
     public class ADB
     {
-        #region "Constants"
-
-        private const int WAITING_INTERVAL = 100;
-
-        #endregion
-
         #region "Private variables"
 
-        private static List<string> _rawOutput = new List<string>();
-        private static List<string> _output = new List<string>();
+        private static List<string> _rawOutput;
+        private static List<string> _output;
+        private Utilities _utilities = new Utilities();        
 
         #endregion
 
         /// <summary>
-        /// Checks platform tools then initializes ADB connection.
+        /// Constructor of the class.
         /// </summary>
-        /// <returns>When async operation is completed, a bool describing operation result:<br/>
-        /// True if successful, otherwise false.
-        /// </returns>
-        public static async Task<bool> Initialize()
+        /// <param name="rawOutput">Reference to raw output string list.</param>
+        /// <param name="output">Reference to output string list.</param>
+        public ADB(ref List<string> rawOutput, ref List<string> output)
         {
-            bool operationResult = false;
+            _rawOutput = rawOutput;
+            _output = output;
+        }
 
+        /// <summary>
+        /// Initializes ADB connection.<br/>
+        /// Handles exceptions returning false.
+        /// </summary>
+        /// <returns>True if OK, otherwise false.</returns>
+        public async Task<bool> Initialize()
+        {
+            bool operationResult = true;
+            
             try
             {
-                operationResult = Utilities.CheckPlatformTools();
-                
-                if (operationResult)
-                {
-                    await ExecuteCommand("adb start-server");
-                }
+                _utilities.CheckPlatformTools();
+                await ExecuteCommand("adb start-server");
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
                 operationResult = false;
-
-                MessageBox.Show(
-                    $"[Initialize]\n" +
-                    $"{exception.Message}\n"
-                    );
+                MessageBox.Show
+                (
+                    $"Error during program initialize! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
             }
-            
+
             return operationResult;
         }
 
         /// <summary>
+        /// Executes an ADB command and, if set, sends a response.<br/>
+        /// Throws exception if operation fails.
+        /// </summary>
+        /// <param name="command">Command to be executed.</param>
+        /// <param name="response">[OPTIONAL] Response to be given.</param>
+        private async Task ExecuteCommand(string command, string response = "")
+        {
+            try
+            {
+                _output.Clear();
+
+                using (Process _adbProcess = new Process())
+                {
+                    using (CancellationTokenSource cts = new CancellationTokenSource())
+                    {
+                        #region "Create process"
+
+                        _adbProcess.StartInfo.CreateNoWindow = true;
+                        _adbProcess.StartInfo.FileName = "cmd.exe";
+                        _adbProcess.StartInfo.RedirectStandardInput = true;
+                        _adbProcess.StartInfo.RedirectStandardOutput = true;
+                        _adbProcess.StartInfo.RedirectStandardError = true;
+                        _adbProcess.StartInfo.UseShellExecute = false;
+                        _adbProcess.StartInfo.WorkingDirectory = Constants.PATHS.PLATFORM_TOOLS_DIR;
+
+                        _adbProcess.OutputDataReceived += (sender, e) =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(e.Data))
+                            {
+                                _rawOutput.Add(e.Data);
+                                _utilities.WriteOutput(e.Data, ref _output);
+                            }
+                        };
+
+                        _adbProcess.Start();
+                        _adbProcess.StandardInput.WriteLine("echo off");
+                        _adbProcess.BeginOutputReadLine();
+
+                        #endregion
+
+                        #region "Run command"
+
+                        var commandTask = Task.Run(async () =>
+                        {
+                            _adbProcess.StandardInput.WriteLine(command);
+                            _adbProcess.StandardInput.Flush();
+                            await Task.Delay(_utilities.GetWaitingTime(command));
+
+                            if (!string.IsNullOrEmpty(response))
+                            {
+                                _adbProcess.StandardInput.WriteLine(response);
+                                _adbProcess.StandardInput.Flush();
+                                await Task.Delay(_utilities.GetWaitingTime(command));
+                            }
+
+                            _adbProcess.StandardInput.WriteLine("exit");
+                        }, cts.Token);
+
+                        #endregion
+
+                        await Task.Run(() => _adbProcess.WaitForExit());
+                    }
+                }
+
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Scans connected devices.<br/>
-        /// Timeout currently set to 5 seconds.
+        /// Timeout set to <see cref="Constants.MISC.SCAN_DEVICES_TIMEOUT"/> value.<br/>
+        /// Handles exceptions returning an empty list.
         /// </summary>
         /// <returns>List containing connected devices.</returns>
-        public static async Task<List<Device>> ScanDevices()
+        public async Task<List<Device>> ScanDevices()
         {
             List<Device> foundDevices = new List<Device>();
 
@@ -70,7 +145,7 @@ namespace PlatformTools
 
                 using (Process _adbProcess = new Process())
                 {
-                    #region "Create command prompt process"
+                    #region "Create process"
 
                     _adbProcess.StartInfo.CreateNoWindow = true;
                     _adbProcess.StartInfo.FileName = "cmd.exe";
@@ -78,7 +153,7 @@ namespace PlatformTools
                     _adbProcess.StartInfo.RedirectStandardOutput = true;
                     _adbProcess.StartInfo.RedirectStandardError = true;
                     _adbProcess.StartInfo.UseShellExecute = false;
-                    _adbProcess.StartInfo.WorkingDirectory = Utilities.PlatformToolsDir;
+                    _adbProcess.StartInfo.WorkingDirectory = Constants.PATHS.PLATFORM_TOOLS_DIR;
 
                     // Add event to read received output data
                     _adbProcess.OutputDataReceived += (sender, e) =>
@@ -86,16 +161,16 @@ namespace PlatformTools
                         if (!string.IsNullOrWhiteSpace(e.Data))
                         {
                             _rawOutput.Add(e.Data);
-                            Utilities.WriteOutput(e.Data, ref _output);
+                            _utilities.WriteOutput(e.Data, ref _output);
                         }
                     };
-
-                    #endregion
 
                     // Start process
                     _adbProcess.Start();
                     _adbProcess.StandardInput.WriteLine("echo off");
                     _adbProcess.BeginOutputReadLine();
+                    
+                    #endregion
 
                     #region "Execute command"
 
@@ -109,9 +184,9 @@ namespace PlatformTools
                         int waitedTime = 0;
                         while (_output.Count.Equals(0))
                         {
-                            await Task.Delay(WAITING_INTERVAL);
-                            waitedTime += WAITING_INTERVAL;
-                            if (waitedTime >= 5000)
+                            await Task.Delay(Constants.MISC.DEFAULT_WAITING_TIME);
+                            waitedTime += Constants.MISC.DEFAULT_WAITING_TIME;
+                            if (waitedTime >= Constants.MISC.SCAN_DEVICES_TIMEOUT)
                             {
                                 break;
                             }
@@ -132,7 +207,7 @@ namespace PlatformTools
                     foreach (var scannedDevice in tempOutput)
                     {
                         Device device = new Device(scannedDevice);
-                        
+
                         if (device.AuthStatus.Equals(Enums.DeviceAuthStatus.AUTHORIZED))
                         {
                             // Get device model
@@ -145,37 +220,124 @@ namespace PlatformTools
                     }
 
 #if DEBUG
-                    // If no device in debug mode, add some fake devices
+                    // If no device in debug mode add some fake devices
                     if (foundDevices.Count.Equals(0))
                     {
-                        int fakeDevicesCount = 3;
-                        for (int i = 1; i <= fakeDevicesCount; i++)
-                        {
-                            foundDevices.Add(new Device($"Device {foundDevices.Count + 1}\tdevice"));
-                        }
+                        foundDevices.Add(new Device($"Pixel 1\tdevice"));
+                        foundDevices.Add(new Device($"Pixel 2 XL\tunauthorized"));
                     }
 #endif
                 }
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                foundDevices.Clear();
-
-                MessageBox.Show(
-                    $"[ScanDevices]\n" +
-                    $"{exception.Message}\n"
-                    );
+                MessageBox.Show
+                (
+                    $"Error scanning devices! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
             }
 
             return foundDevices;
         }
 
         /// <summary>
-        /// Tries to authorize a device given its ID.
+        /// Connects to a device via Wireless ADB through its IP and port.<br/>
+        /// Handles exceptions returning false.
+        /// </summary>
+        /// <param name="deviceIp">Device IP.</param>
+        /// <param name="devicePort">Device port.</param>
+        /// <returns>True if connected, otherwise false.</returns>
+        public async Task<bool> ConnectWirelessDevice(string deviceIp, string devicePort)
+        {
+            bool connectionResult = false;
+
+            try
+            {
+                await ExecuteCommand($"adb connect {deviceIp}:{devicePort}");
+
+                // Save and check output before clear it
+                if (_output.Count > 0 && !string.IsNullOrWhiteSpace(_output.Last()) && _output.Last().Contains("connected"))
+                {
+                    connectionResult = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                connectionResult = false;
+
+                MessageBox.Show
+                (
+                    $"Error connecting wireless device! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }
+
+            return connectionResult;
+        }
+
+        /// <summary>
+        /// Pair a device via Wireless ADB through its device IP, port and pairing code.<br/>
+        /// Handles exceptions returning false.
+        /// </summary>
+        /// <param name="deviceIp">Device IP.</param>
+        /// <param name="devicePort">Device port.</param>
+        /// <param name="devicePairingCode">Device pairing code.</param>
+        /// <returns>True if paired, otherwise false.</returns>
+        public async Task<bool> PairWirelessDevice(string deviceIp, string devicePort, string devicePairingCode)
+        {
+            bool pairingResult = false;
+
+            try
+            {
+                await ExecuteCommand($"adb pair {deviceIp}:{devicePort}", devicePairingCode);
+
+                // Save and check output before clear it
+                if (_output.Count > 0 && !string.IsNullOrWhiteSpace(_output.Last()) && _output.Last().Contains("paired"))
+                {
+                    pairingResult = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                pairingResult = false;
+
+                MessageBox.Show
+                (
+                    $"Error pairing wireless device! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }
+
+            return pairingResult;
+        }
+
+        /// <summary>
+        /// Kills ADB server.
+        /// </summary>
+        public async Task KillServer()
+        {
+            try
+            {
+                await ExecuteCommand("adb kill-server");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show
+                (
+                    $"Error killing ADB server! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Tries to authorize a device given its ID.<br/>
+        /// Handles exceptions returning false.
         /// </summary>
         /// <param name="deviceIdentifier">Device ID.</param>
         /// <returns>True if authorization successful, otherwise false.</returns>
-        public static async Task<bool> AuthorizeDevice(string deviceIdentifier)
+        public async Task<bool> AuthorizeDevice(string deviceIdentifier)
         {
             bool authResult = false;
 
@@ -186,7 +348,7 @@ namespace PlatformTools
                 await ExecuteCommand("adb start-server");
 
                 // Show message waiting for authorization
-                MessageBox.Show($"Please authorize this computer via the popup displayed on device screen (ID = {deviceIdentifier}), then click OK!");
+                MessageBox.Show($"Please authorize this computer via the popup displayed on device (ID = {deviceIdentifier}), then click OK!");
 
                 // Send devices command to check device new auth status
                 await ExecuteCommand("adb devices");
@@ -195,184 +357,20 @@ namespace PlatformTools
                 // If output contains device id and "device" string it means it's authorized
                 authResult = _output.Any(str => str.Contains(deviceIdentifier) && str.Contains("device"));
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
                 authResult = false;
 
-                MessageBox.Show(
-                    $"[AuthorizeDevice]\n" +
-                    $"{exception.Message}\n"
-                    );
+                MessageBox.Show
+                (
+                    $"Error authorizing device! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
             }
 
             return authResult;
         }
 
-        /// <summary>
-        /// Connects to a device via Wireless ADB through its IP and port.
-        /// </summary>
-        /// <param name="deviceIp">Device IP.</param>
-        /// <param name="devicePort">Device port.</param>
-        /// <returns>True if connection successful, otherwise false.</returns>
-        public static async Task<bool> ConnectWirelessDevice(string deviceIp, string devicePort)
-        {
-            bool connectionResult = false;
-
-            try
-            {
-                await ExecuteCommand($"adb connect {deviceIp}:{devicePort}");
-
-                if (_output.Count > 0)
-                {
-                    // Save output before clear it
-                    string commandOutput = _output.Last();
-
-                    // Check received output
-                    if (!string.IsNullOrWhiteSpace(commandOutput) && commandOutput.Contains("connected"))
-                    {
-                        connectionResult = true;
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                connectionResult = false;
-
-                MessageBox.Show(
-                    $"[ConnectWirelessDevice]\n" +
-                    $"{exception.Message}\n"
-                    );
-            }
-
-            return connectionResult;
-        }
-
-        /// <summary>
-        /// Pair a device via Wireless ADB through its device IP, port and pairing code.
-        /// </summary>
-        /// <param name="deviceIp">Device IP.</param>
-        /// <param name="devicePort">Device port.</param>
-        /// <param name="devicePairingCode">Device pairing code.</param>
-        /// <returns>True if pairing is successful, otherwise false.</returns>
-        public static async Task<bool> PairWirelessDevice(string deviceIp, string devicePort, string devicePairingCode)
-        {
-            bool pairingResult = false;
-
-            try
-            {
-                // Send pairing command
-                await ExecuteCommand($"adb pair {deviceIp}:{devicePort}", devicePairingCode);
-
-                if (_output.Count > 0 && _output.Last().Contains("paired"))
-                {
-                    pairingResult = true;
-                }
-            }
-            catch (Exception exception)
-            {
-                pairingResult = false;
-
-                MessageBox.Show(
-                    $"[PairWirelessDevice]\n" +
-                    $"{exception.Message}\n"
-                    );
-            }
-
-            return pairingResult;
-        }
-
-        /// <summary>
-        /// Kills ADB server.
-        /// </summary>
-        /// <returns>When async operation is completed, a task object.</returns>
-        public static async Task KillServer()
-        {
-            await ExecuteCommand("adb kill-server");
-        }
-
-        #region "Private functions"
-
-        /// <summary>
-        /// Executes an ADB command.<br/>
-        /// If set, sends also response.
-        /// </summary>
-        /// <param name="command">Command to be executed.</param>
-        /// <param name="response">[OPTIONAL] Response to be given.</param>
-        /// <returns>When async operation is completed, a task object.</returns>
-        private static async Task ExecuteCommand(string command, string response = "")
-        {
-            try
-            {
-                // Clear previous output
-                _output.Clear();
-
-                using (Process _adbProcess = new Process())
-                {
-                    #region "Create command prompt process"
-
-                    _adbProcess.StartInfo.CreateNoWindow = true;
-                    _adbProcess.StartInfo.FileName = "cmd.exe";
-                    _adbProcess.StartInfo.RedirectStandardInput = true;
-                    _adbProcess.StartInfo.RedirectStandardOutput = true;
-                    _adbProcess.StartInfo.RedirectStandardError = true;
-                    _adbProcess.StartInfo.UseShellExecute = false;
-                    _adbProcess.StartInfo.WorkingDirectory = Utilities.PlatformToolsDir;
-
-                    // Add event to read received output data
-                    _adbProcess.OutputDataReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrWhiteSpace(e.Data))
-                        {
-                            _rawOutput.Add(e.Data);
-                            Utilities.WriteOutput(e.Data, ref _output);
-                        }
-                    };
-
-                    #endregion
-
-                    // Start process
-                    _adbProcess.Start();
-                    _adbProcess.StandardInput.WriteLine("echo off");
-                    _adbProcess.BeginOutputReadLine();
-
-                    #region "Execute command"
-
-                    await Task.Run(async () =>
-                    {
-                        _adbProcess.StandardInput.WriteLine(command);
-                        _adbProcess.StandardInput.Flush();
-
-                        // Wait for operation to be completed according to sent command
-                        await Task.Delay(Utilities.GetWaitingTime(command));
-
-                        // If a response is set then write it into command prompt
-                        if (response != null)
-                        {
-                            _adbProcess.StandardInput.WriteLine(response);
-                            _adbProcess.StandardInput.Flush();
-
-                            await Task.Delay(Utilities.GetWaitingTime(command));
-                        }
-
-                        _adbProcess.StandardInput.WriteLine("exit");
-                    });
-
-                    #endregion
-
-                    // Waiting process exit
-                    await Task.Run(() => _adbProcess.WaitForExit());
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"[SendCommand]\n" +
-                    $"{ex.Message}\n"
-                    );
-            }
-        }
-
-        #endregion
     }
 }
 

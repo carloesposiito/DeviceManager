@@ -38,7 +38,7 @@ namespace PlatformTools
         /// <summary>
         /// Device authorization status.
         /// </summary>
-        public Enums.DeviceAuthStatus AuthStatus { get => _authStatus; }
+        public Enums.DeviceAuthStatus AuthStatus { get => _authStatus; set => _authStatus = value; }
 
         /// <summary>
         /// Describes if device is wireless connected.
@@ -50,7 +50,6 @@ namespace PlatformTools
         /// <summary>
         /// Constructor of the class.
         /// </summary>
-        // Permits to create device also from WPF, but only in debug mode
         internal Device(string scannedDeviceLine)
         {
             // Split device line into parts
@@ -68,13 +67,9 @@ namespace PlatformTools
             {
                 _authStatus = Enums.DeviceAuthStatus.AUTHORIZED;
             }
-            else if (lineParts[1].Trim().Equals("unauthorized"))
-            {
-                _authStatus = Enums.DeviceAuthStatus.UNAUTHORIZED;
-            }
             else
             {
-                _authStatus = Enums.DeviceAuthStatus.UNKNOWN;
+                _authStatus = Enums.DeviceAuthStatus.UNAUTHORIZED;
             }
         }
     
