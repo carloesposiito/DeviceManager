@@ -28,6 +28,12 @@
             <Setter Property="Margin"
                     Value="0,10,0,0" />
         </Style>
+        
+        <Style TargetType="CheckBox"
+               x:Key="cb_SelectDeviceFolders">
+            <Setter Property="Margin"
+                    Value="0,10,0,0" />
+        </Style>
 
         <Style TargetType="GroupBox"
                x:Key="gp_Default">

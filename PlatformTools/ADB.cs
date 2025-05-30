@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Forms;
 
 namespace PlatformTools
@@ -101,21 +100,18 @@ namespace PlatformTools
 
                         #region "Run command"
 
-                        var commandTask = Task.Run(async () =>
+                        _adbProcess.StandardInput.WriteLine(command);
+                        _adbProcess.StandardInput.Flush();
+                        await Task.Delay(_utilities.GetWaitingTime(command));
+
+                        if (!string.IsNullOrEmpty(response))
                         {
-                            _adbProcess.StandardInput.WriteLine(command);
+                            _adbProcess.StandardInput.WriteLine(response);
                             _adbProcess.StandardInput.Flush();
                             await Task.Delay(_utilities.GetWaitingTime(command));
+                        }
 
-                            if (!string.IsNullOrEmpty(response))
-                            {
-                                _adbProcess.StandardInput.WriteLine(response);
-                                _adbProcess.StandardInput.Flush();
-                                await Task.Delay(_utilities.GetWaitingTime(command));
-                            }
-
-                            _adbProcess.StandardInput.WriteLine("exit");
-                        }, cts.Token);
+                        _adbProcess.StandardInput.WriteLine("exit");
 
                         #endregion
 
@@ -176,26 +172,23 @@ namespace PlatformTools
 
                     #region "Execute command"
 
-                    await Task.Run(async () =>
+                    _adbProcess.StandardInput.WriteLine("adb devices");
+                    _adbProcess.StandardInput.Flush();
+
+                    // Wait for scan to be completed
+                    // Maximum waiting time for this operation is 5 seconds
+                    int waitedTime = 0;
+                    while (_output.Count.Equals(0))
                     {
-                        _adbProcess.StandardInput.WriteLine("adb devices");
-                        _adbProcess.StandardInput.Flush();
-
-                        // Wait for scan to be completed
-                        // Maximum waiting time for this operation is 5 seconds
-                        int waitedTime = 0;
-                        while (_output.Count.Equals(0))
+                        await Task.Delay(Constants.MISC.DEFAULT_WAITING_TIME);
+                        waitedTime += Constants.MISC.DEFAULT_WAITING_TIME;
+                        if (waitedTime >= Constants.MISC.SCAN_DEVICES_TIMEOUT)
                         {
-                            await Task.Delay(Constants.MISC.DEFAULT_WAITING_TIME);
-                            waitedTime += Constants.MISC.DEFAULT_WAITING_TIME;
-                            if (waitedTime >= Constants.MISC.SCAN_DEVICES_TIMEOUT)
-                            {
-                                break;
-                            }
+                            break;
                         }
+                    }
 
-                        _adbProcess.StandardInput.WriteLine("exit");
-                    });
+                    _adbProcess.StandardInput.WriteLine("exit");
 
                     #endregion
 
@@ -383,10 +376,11 @@ namespace PlatformTools
         /// - Item 2 is transferred files count.<br/>
         /// - Item 3 is skipped files count.
         /// </returns>
-        private async Task<Tuple<int,int,int>> ExecutePushCommand(string destinationDeviceIdentifier, string destinationDeviceFolder, string folderToBeTransferred)
+        private async Task<Tuple<int, int, int>> ExecutePushCommand(string destinationDeviceIdentifier, string destinationDeviceFolder, string folderToBeTransferred)
         {
-            Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0,0,0);
+            Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0, 0, 0);
             int transferredFiles = 0;
+            int skippedFiles = 0;
             int totalFiles = Directory.GetFiles(folderToBeTransferred, "*", SearchOption.AllDirectories).Length;
 
             try
@@ -414,12 +408,12 @@ namespace PlatformTools
                                 if (!string.IsNullOrWhiteSpace(e.Data))
                                 {
                                     _rawOutput.Add(e.Data);
+                                    if (e.Data.Contains(Constants.PATTERNS.PUSHED_COMMAND_PATTERN) && e.Data.Contains(Constants.PATTERNS.SKIPPED_COMMAND_PATTERN))
+                                    {
+                                        _output.Add(e.Data);
+                                    }
                                 }
                             };
-
-                            _adbProcess.Start();
-                            _adbProcess.StandardInput.WriteLine("echo off");
-                            _adbProcess.BeginOutputReadLine();
 
                             // Add event to read received errors
                             // Transferred files lines are errors ???
@@ -428,12 +422,17 @@ namespace PlatformTools
                                 if (!string.IsNullOrWhiteSpace(e.Data))
                                 {
                                     _rawOutput.Add(e.Data);
-                                    if (!string.IsNullOrWhiteSpace(e.Data) && e.Data.Contains(Constants.PATTERNS.PUSHED_COMMAND_PATTERN) && e.Data.Contains(Constants.PATTERNS.SKIPPED_COMMAND_PATTERN))
+                                    if (e.Data.Contains(Constants.PATTERNS.PUSHED_COMMAND_PATTERN) && e.Data.Contains(Constants.PATTERNS.SKIPPED_COMMAND_PATTERN))
                                     {
                                         _output.Add(e.Data);
                                     }
                                 }
                             };
+
+                            _adbProcess.Start();
+                            _adbProcess.StandardInput.WriteLine("echo off");
+                            _adbProcess.BeginOutputReadLine();
+                            _adbProcess.BeginErrorReadLine();
 
                             #endregion
 
@@ -441,35 +440,30 @@ namespace PlatformTools
 
                             string command = $"adb -s {destinationDeviceIdentifier} push \"{folderToBeTransferred}\" \"{destinationDeviceFolder}\"";
 
-                            var commandTask = Task.Run(async () =>
+                            _adbProcess.StandardInput.WriteLine(command);
+                            _adbProcess.StandardInput.Flush();
+
+                            // When transferring files there are no written lines
+                            // Only at the end of the process a text will appear
+                            // Wait till that moment
+                            while (!_output.Count.Equals(1))
                             {
-                                _adbProcess.StandardInput.WriteLine(command);
-                                _adbProcess.StandardInput.Flush();
-
-                                // When transferring files there are no written lines
-                                // Only at the end of the process a text will appear
-                                // Wait till that moment
-                                while (!_output.Count.Equals(1))
-                                {
-                                    await Task.Delay(Constants.MISC.DEFAULT_WAITING_TIME);
-                                }
-
-                                // A bit more
-                                await Task.Delay(500);
-                            }, cts.Token);
+                                await Task.Delay(Constants.MISC.DEFAULT_WAITING_TIME);
+                            }
+                            await Task.Delay(250);
 
                             // Output should contain only final line after transferring completed.
                             // Read skipped files count from it
-                            int skippedFiles = _utilities.ReadSkippedFiles(_output.Last());
+                            skippedFiles = _utilities.ReadSkippedFiles(_output.Last());
                             transferredFiles = totalFiles - skippedFiles;
 
                             // Send exit command
                             _adbProcess.StandardInput.WriteLine("exit");
 
-                            #endregion
-
                             // Waiting process exit
                             await Task.Run(() => _adbProcess.WaitForExit());
+
+                            #endregion
 
                             // Return according to process exit code
                             if (!_adbProcess.ExitCode.Equals(0))
@@ -491,7 +485,7 @@ namespace PlatformTools
                     $"Error transferring files to device! Error details:\n\n" +
                     $"{ex.Message}"
                 );
-            }           
+            }
 
             return operationResult;
         }
@@ -507,15 +501,14 @@ namespace PlatformTools
         /// - Item 2 is transferred files count.<br/>
         /// - Item 3 is skipped files count.
         /// </returns>
-        public async Task<Tuple<int, int, int>> TransferFolder(string destinationDeviceIdentifier)
+        public async Task<Tuple<int, int, int>> TransferFolder(Device destinationDevice)
         {
             Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0, 0, 0);
-            string destinationDeviceFolder = "";
             string folderToBeTransferred = _utilities.BrowseFolder();
-            
+
             if (!string.IsNullOrWhiteSpace(folderToBeTransferred))
             {
-                operationResult = await ExecutePushCommand(destinationDeviceIdentifier, destinationDeviceFolder, folderToBeTransferred);
+                operationResult = await ExecutePushCommand(destinationDevice.Id, destinationDevice.DocumentsFolderPath, folderToBeTransferred);
             }
 
             return operationResult;
@@ -539,391 +532,237 @@ namespace PlatformTools
                     $"Error deleting extracted photos folder! Error details:\n\n" +
                     $"{ex.Message}"
                 );
-            }   
+            }
         }
 
-    }
-}
-
-/*
-
-using AndroidDeviceManager.Model.Exceptions;
-using AndroidDeviceManager.Model;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
-
-namespace AndroidDeviceManager.Functions
-{
-    internal static class ADB
-    {
-        #region "Variables       
-
-        private static List<Device> _connectedDevices = new List<Device>();
-        
-
-        #endregion
-
-        #region "Getters and setters"
-
-        internal static List<Device> ConnectedDevices { get => _connectedDevices; set => _connectedDevices = value; }
-        internal static string RawOutput { get => string.Join("\n", _rawOutput); }
-
-        #endregion
-
-        ////////////////////////////////////////////////////////////////////////
-        //                                                                    //
-        //                               FUNCTIONS                            //
-        //                                                                    //
-        ////////////////////////////////////////////////////////////////////////
-
-        
-
-        
         /// <summary>
-        /// Scans connected devices and populates <see cref="ConnectedDevices"/> list.
+        /// Executes a pull command in ADB command prompt.<br/>
+        /// Handles exceptions returning 0 values.
         /// </summary>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task ScanDevices()
+        /// <returns>
+        /// Returns a tuple where:<br/>
+        /// - Item 1 are total pulled files count.<br/>
+        /// - Item 2 are totale skipped files count.
+        /// </returns>
+        private async Task<Tuple<int, int>> ExecutePullCommand(string sourceDeviceIdentifier, string folderToBePulled, string destinationFolder)
         {
+            Tuple<int, int> operationResult = new Tuple<int, int>(0, 0);
+
             try
             {
-                // Clear previous devices
-                ConnectedDevices.Clear();
+                _output.Clear();
 
-                // Send request devices command
-                await ExecuteCommand("adb devices");
+                #region "Format destination folder to work with CMD"
 
-                if (_filteredOutput.Count() > 0)
+                List<string> splittedSourceDeviceFolder = folderToBePulled.Split(new char[] { '\\', '/' }).Where
+                        (splitted =>
+                            !string.IsNullOrWhiteSpace(splitted) &&
+                            !splitted.Contains("storage") &&
+                            !splitted.Contains("emulated") &&
+                            !splitted.Contains("0")
+                        ).ToList();
+
+                // Add folder name to destination folder
+                destinationFolder = $"{destinationFolder}\\{string.Join("\\", splittedSourceDeviceFolder)}";
+                
+                #endregion
+
+                using (Process _adbProcess = new Process())
                 {
-                    List<string> _filteredOutputCopy = new List<string>(_filteredOutput);
-
-                    foreach (string deviceLine in _filteredOutputCopy)
+                    using (CancellationTokenSource cts = new CancellationTokenSource())
                     {
-                        bool addDevice = true;
+                        #region "Create process"
 
-                        #region "Get device info"
+                        _adbProcess.StartInfo.CreateNoWindow = true;
+                        _adbProcess.StartInfo.FileName = "cmd.exe";
+                        _adbProcess.StartInfo.RedirectStandardInput = true;
+                        _adbProcess.StartInfo.RedirectStandardOutput = true;
+                        _adbProcess.StartInfo.RedirectStandardError = true;
+                        _adbProcess.StartInfo.UseShellExecute = false;
+                        _adbProcess.StartInfo.WorkingDirectory = Constants.PATHS.PLATFORM_TOOLS_DIR;
 
-                        // Split device line into parts
-                        List<string> lineParts = deviceLine.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-
-                        // Get device identifier
-                        string deviceIdentifier = lineParts[0].Trim();
-
-                        // Get device authorization status
-                        bool deviceAuthorizationStatus = lineParts[1].Trim() == "device";
-
-                        // Get info about connection type
-                        bool deviceIsWirelessConnected = deviceIdentifier.Contains(":") || deviceIdentifier.Contains("adb");
-
-                        // Set default name
-                        string deviceName = $"Undefined - {deviceIdentifier}";
-
-                        // Set default unlimited backup status
-                        bool deviceHasUnlimitedBackup = false;
-
-                        // If device is authorized it's possible to get real device name
-                        if (deviceAuthorizationStatus)
+                        _adbProcess.OutputDataReceived += (sender, e) =>
                         {
-                            // Get device name
-                            await ExecuteCommand($"adb -s {deviceIdentifier} shell getprop ro.product.model");
-
-                            // If it's a valid name, assing it
-                            deviceName = _filteredOutput.Count > 0 ? _filteredOutput.Last() : deviceIdentifier;
-
-                            foreach (Device connectedDevice in _connectedDevices)
+                            if (!string.IsNullOrWhiteSpace(e.Data))
                             {
-                                // If devices have same name but different identifier
-                                // Then they are different devices
-                                // So add identifier to their names
-                                if (connectedDevice.Name == deviceName && !connectedDevice.ID.Contains(deviceIdentifier))
+                                _rawOutput.Add(e.Data);
+                                if (e.Data.Contains(Constants.PATTERNS.PULLED_COMMAND_PATTERN) && e.Data.Contains(Constants.PATTERNS.SKIPPED_COMMAND_PATTERN))
                                 {
-                                    connectedDevice.Name = $"{connectedDevice.Name} - {connectedDevice.ID}";
-                                    deviceName = $"{deviceName} - {deviceIdentifier}";
-                                }
-
-                                // If devices have same identifier
-                                // Then they are the same devices connected both via WiFi and USB
-                                // So keep the device with USB identifier
-                                if (connectedDevice.ID.Contains(deviceIdentifier) || connectedDevice.ID.Equals(deviceIdentifier))
-                                {
-                                    // Devices should not be added because it already exists
-                                    addDevice = false;
-                                    connectedDevice.ID = deviceIsWirelessConnected ? connectedDevice.ID : deviceIdentifier;
+                                    _output.Add(e.Data);
                                 }
                             }
+                        };
 
-                            // With device real name, check if it has unlimited backup
-                            deviceHasUnlimitedBackup = Utils.UnlimitedBackupDevices.Any(unlimitedBackupDeviceName => deviceName.Contains(unlimitedBackupDeviceName));
-                        }
+                        // Add event to read received errors
+                        // Transferred files lines are errors ???
+                        _adbProcess.ErrorDataReceived += (sender, e) =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(e.Data))
+                            {
+                                _rawOutput.Add(e.Data);
+                                if (e.Data.Contains(Constants.PATTERNS.PULLED_COMMAND_PATTERN) && e.Data.Contains(Constants.PATTERNS.SKIPPED_COMMAND_PATTERN))
+                                {
+                                    _output.Add(e.Data);
+                                }
+                            }
+                        };
+
+                        _adbProcess.Start();
+                        _adbProcess.StandardInput.WriteLine("echo off");
+                        _adbProcess.BeginOutputReadLine();
+                        _adbProcess.BeginErrorReadLine();
 
                         #endregion
 
-                        if (addDevice)
+                        #region "Run command"
+
+                        string command = $"adb -s {sourceDeviceIdentifier} pull \"{folderToBePulled}\" \"{destinationFolder}\"";
+
+                        _adbProcess.StandardInput.WriteLine(command);
+                        _adbProcess.StandardInput.Flush();
+
+                        // When transferring files there are no written lines
+                        // Only at the end of the process a text will appear
+                        // Wait till that moment
+                        while (!_output.Count.Equals(1))
                         {
-                            Device device = new Device(deviceName, deviceIdentifier, deviceAuthorizationStatus, deviceHasUnlimitedBackup, deviceIsWirelessConnected);
-                            _connectedDevices.Add(device);
+                            await Task.Delay(Constants.MISC.DEFAULT_WAITING_TIME);
+                        }
+                        await Task.Delay(250);
+
+                        // Output should contain only final line after transferring completed.
+                        // Read skipped files count from it
+                        operationResult = _utilities.ReadPulledFiles(_output.Last());
+
+                        // Send exit command
+                        _adbProcess.StandardInput.WriteLine("exit");
+
+                        // Waiting process exit
+                        await Task.Run(() => _adbProcess.WaitForExit());
+
+                        #endregion
+
+                        // Return according to process exit code
+                        if (!_adbProcess.ExitCode.Equals(0))
+                        {
+                            throw new Exception("Wrong process exit code! Files may be transferred correctly.");
                         }
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Clear previous devices
-                ConnectedDevices.Clear();
-                throw;
+                operationResult = new Tuple<int, int>(0, 0);
+
+                MessageBox.Show
+                (
+                    $"Error pulling files from device! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
             }
+
+            return operationResult;
         }
 
         /// <summary>
-        /// Tries to authorize device with parameter identifier.
+        /// Saves device folder in <paramref name="foldersToBackup"/> list to <paramref name="destinationFolder"/>.<br/>
+        /// If <paramref name="destinationFolder"/> is not set, backup will be saved to program directory.<br/>
+        /// A folder with device ID and 0 folder will be created at the root to permit backup restoring.<br/>
+        /// Handles exceptions returning 0 values.
         /// </summary>
-        /// <param name="deviceIdentifier">Identifier of the device to be authorized.</param>
-        /// <returns>True if device is authorized, otherwise false.</returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task<bool> AuthorizeDevice(string deviceIdentifier)
+        /// <param name="destinationDeviceIdentifier">Destination device identifier.</param>
+        /// <returns>
+        /// Returns a tuple where:<br/>
+        /// - Item 1 are total pulled files count.<br/>
+        /// - Item 2 are totale skipped files count.
+        /// </returns>
+        public async Task<Tuple<int, int>> BackupFolders(Device sourceDevice, List<string> foldersToBackup, string destinationFolder = "")
         {
-            // Restart server to permit to show popup on device
-            await ExecuteCommand("adb kill-server");
-            await StartServer();
-
-            // Show message waiting for authorization
-            Utils.ShowMessageDialog(
-                $"Please authorize this computer via the popup displayed on device screen (ID = {deviceIdentifier}), then click OK!"
-            );
-
-            // Send devices command to check device new auth status
-            await ExecuteCommand("adb devices");
-
-            // Output should contain only connected devices
-            // If output contains device id and "device" string it means it's authorized
-            return _filteredOutput.Any(str => str.Contains(deviceIdentifier) && str.Contains("device"));
-        }
-
-        /// <summary>
-        /// Connects to a device via wireless ADB.
-        /// </summary>
-        /// <returns>True if connection is successful, otherwise false.</returns>
-        /// /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task<bool> ConnectWirelessDevice(string deviceIp, string devicePort)
-        {
-            await ExecuteCommand($"adb connect {deviceIp}:{devicePort}");
-
-            if (_filteredOutput.Count > 0)
-            {
-                // Save output before clear it
-                string commandOutput = _filteredOutput.Last();
-                _filteredOutput.Clear();
-
-                // Check received output
-                if (!string.IsNullOrWhiteSpace(commandOutput) && commandOutput.Contains("connected"))
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Pair a device via wireless ADB.
-        /// </summary>
-        /// <returns>True if pairing is successful, otherwise false.</returns>
-        /// /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task<bool> PairWirelessDevice(string deviceIp, string devicePort, string devicePairingCode)
-        {
-            // Send pairing command
-            await ExecuteCommand($"adb pair {deviceIp}:{devicePort}", devicePairingCode);
-
-            if (_filteredOutput.Count > 0)
-            {
-                if (!string.IsNullOrWhiteSpace(_filteredOutput.Last()) && _filteredOutput.Last().Contains("paired"))
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Executes a push command in ADB command prompt.
-        /// </summary>
-        /// <returns>Pushed files count.</returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        /// <exception cref="PlatformToolsTransferException"></exception>
-        internal static async Task<int> ExecutePushCommand(string destinationDeviceIdentifier, string destinationDeviceFolder, string sourceFolderPath)
-        {
-            _filteredOutput.Clear();
-
+            Tuple<int, int> operationResult = new Tuple<int, int>(0, 0);
+            int transferredFiles = 0;
             int skippedFiles = 0;
 
-            // Count total files in parent and children directories to be transferred
-            var totalFilesCount = Directory.GetFiles(sourceFolderPath, "*", SearchOption.AllDirectories).Length;
-
-            // Transfer files
-            string command = $"adb -s {destinationDeviceIdentifier} push \"{sourceFolderPath}\" \"{destinationDeviceFolder}\"";
-
-            using (Process _adbProcess = new Process())
+            try
             {
-                _adbProcess.StartInfo.CreateNoWindow = true;
-                _adbProcess.StartInfo.FileName = "cmd.exe";
-                _adbProcess.StartInfo.RedirectStandardInput = true;
-                _adbProcess.StartInfo.RedirectStandardOutput = true;
-                _adbProcess.StartInfo.RedirectStandardError = true;
-                _adbProcess.StartInfo.UseShellExecute = false;
-                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
-
-                // Add event to read received output data
-                _adbProcess.OutputDataReceived += (sender, e) =>
+                if (string.IsNullOrWhiteSpace(destinationFolder))
                 {
-                    if (!string.IsNullOrWhiteSpace(e.Data))
-                    {
-                        _rawOutput.Add(e.Data);
-                    }
-                };
-
-                // Add event to read received errors
-                _adbProcess.ErrorDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(e.Data))
-                    {
-                        _rawOutput.Add(e.Data);
-
-                        // Exclude sent commands
-                        if (e.Data.Contains("pushed") && e.Data.Contains("skipped"))
-                        {
-                            _filteredOutput.Add(e.Data);
-                        }
-                    }
-                };
-
-                // Start process
-                _adbProcess.Start();
-                _adbProcess.StandardInput.WriteLine("echo off");
-                _adbProcess.BeginOutputReadLine();
-                _adbProcess.BeginErrorReadLine();
-
-                // Send parameter command
-                _adbProcess.StandardInput.WriteLine(command);
-                _adbProcess.StandardInput.Flush();
-
-                // Wait operation to be completed asynchronously
-                while (!_filteredOutput.Count.Equals(1))
-                {
-                    await Task.Delay(50);
-
-#if DEBUG
-                    Debug.WriteLine("Transfer in progress...");
-#endif
+                    destinationFolder = Constants.PATHS.BACKUP_DIR;
+                    Directory.CreateDirectory(destinationFolder);
                 }
 
-                #region "Check copied files count"
-
-                var lastLine = _filteredOutput.Last();
-
-                if (lastLine.Contains("pushed"))
+                if (foldersToBackup.Count > 0 && !string.IsNullOrWhiteSpace(destinationFolder) && Directory.Exists(destinationFolder))
                 {
-                    const string START_PATTERN = ", ";
-                    int start = lastLine.IndexOf(START_PATTERN) + START_PATTERN.Length;
+                    string deviceModel = sourceDevice.Id.Contains(":") ? sourceDevice.Id.Replace(":", ".") : sourceDevice.Id;
+                    destinationFolder = $"{destinationFolder}\\{deviceModel}_{DateTime.Now.ToString("yy.MM.dd_HH.mm.ss")}\\0";
 
-                    const string END_PATTERN = " skipped";
-                    int end = lastLine.IndexOf(END_PATTERN);
+                    // Create folder
+                    Directory.CreateDirectory(destinationFolder);
 
-                    string skippedFilesString = lastLine.Substring(start, end - start);
-                    if (!int.TryParse(skippedFilesString, out skippedFiles))
+                    foreach (string folderToBackup in foldersToBackup)
                     {
-                        throw new PlatformToolsTransferException("ExecuteCommand(): Error parsing transferred files count.");
+                        var subOperationResult = await ExecutePullCommand(sourceDevice.Id, folderToBackup, destinationFolder);
+                        transferredFiles += subOperationResult.Item1;
+                        skippedFiles += subOperationResult.Item2;
                     }
+
+                    operationResult = new Tuple<int, int>(transferredFiles, skippedFiles);
+                }
+            }
+            catch (Exception ex)
+            {
+                operationResult = new Tuple<int, int>(0, 0);
+
+                MessageBox.Show
+                (
+                    $"Error while performing backup! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }
+
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Restore a backup made previously with this program.<br/>
+        /// </summary>
+        /// <param name="destinationDevice">Destination device.</param>
+        /// <param name="folderToBeRestored">Folder of backup previously made (the folder with device name/identifier).</param>
+        /// <returns>
+        /// Returns a tuple where:<br/>
+        /// - Item 1 is files to be transferred count.<br/>
+        /// - Item 2 is transferred files count.<br/>
+        /// - Item 3 is skipped files count.
+        /// </returns>
+        public async Task<Tuple<int, int, int>> RestoreBackup(Device destinationDevice, string folderToBeRestored)
+        {
+            Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0, 0, 0);
+
+            if (!string.IsNullOrWhiteSpace(folderToBeRestored))
+            {
+                folderToBeRestored += $"\\0";
+
+                if (Directory.Exists(folderToBeRestored))
+                {
+                    operationResult = await ExecutePushCommand(destinationDevice.Id, destinationDevice.DeviceFolderPath, folderToBeRestored);
                 }
                 else
                 {
-                    throw new PlatformToolsTransferException("ExecuteCommand(): Error reading output last line.");
-                }
-
-                #endregion
-
-                // Send exit command
-                _adbProcess.StandardInput.WriteLine("exit");
-
-                // Waiting process exit
-                await Task.Run(() => _adbProcess.WaitForExit());
-
-                // Return according to process exit code
-                if (!_adbProcess.ExitCode.Equals(0))
-                {
-                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1.");
-                }
-                else
-                {
-                    return totalFilesCount - skippedFiles;
+                    MessageBox.Show
+                    (
+                        "Selected folder not seems to be a valid backup or a backup made with this program!\n" +
+                        "Please select the folder with the device name/identifier to proceed."
+                    );
                 }
             }
+
+            return operationResult;
         }
 
         /// <summary>
-        /// Executes a pull command in ADB command prompt.
+        /// Scans applications on device.<br/>
+        /// Handles exceptions returning empty lists.
         /// </summary>
-        /// <returns>Pulled files count.</returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        /// <exception cref="PlatformToolsTransferException"></exception>
-        internal static async Task<int> ExecutePullCommand(Device sourceDevice, List<string> sourceDeviceFolders, bool unlimitedBackupProcess = false)
-        {
-            int totalFilesCount = 0;
-
-            // Sometimes device ID contains invalid characters
-            string oldDeviceIdentifier = sourceDevice.ID;
-            sourceDevice.ID = sourceDevice.ID.Contains(":") ? sourceDevice.ID.Replace(":", ".") : sourceDevice.ID;
-
-            if (unlimitedBackupProcess)
-            {
-                Utils.CreateUnlimitedBackupProgramFolders(sourceDevice);
-            }
-            else
-            {
-                Utils.CreateProgramFolders(sourceDevice);
-            }
-
-            sourceDevice.ID = oldDeviceIdentifier;
-            foreach (string sourceDeviceFolder in sourceDeviceFolders)
-            {
-                totalFilesCount += await ExecutePullCommand(sourceDevice.ID, sourceDeviceFolder, unlimitedBackupProcess);
-            }
-
-            return totalFilesCount;
-        }
-
-        /// <summary>
-        /// Deletes Camera folder from target device.
-        /// </summary>
-        /// <param name="destionationDeviceIdentifier">Target device ID.</param>
-        /// <returns></returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task ExecuteDeleteCameraCommand(string destionationDeviceIdentifier)
-        {
-            string command = $"adb -s {destionationDeviceIdentifier} shell \"rm -r /sdcard/DCIM/Camera\"";
-            await ExecuteCommand(command);
-        }
-
-        /// <summary>
-        /// Scans applications on device.
-        /// </summary>
-        /// <param name="deviceIdentifier">ID of the device to be scanned.</param>
+        /// <param name="deviceIdentifier">Device identifier of the device to be scanned.</param>
         /// <returns>
         /// <list type="bullet">
         /// <item>Item 1 is all device apps.</item>
@@ -931,310 +770,68 @@ namespace AndroidDeviceManager.Functions
         /// <item>Item 3 is device third party apps.</item>
         /// </list>
         /// </returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task<Tuple<List<string>, List<string>, List<string>>> GetApplications(string deviceIdentifier)
+        public async Task<Tuple<List<string>, List<string>, List<string>>> GetApplications(string deviceIdentifier)
         {
             List<string> allApps = new List<string>();
             List<string> systemApps = new List<string>();
             List<string> thirdPartyApps = new List<string>();
 
-            const string START_PATTERN = "package:";
-            int startIndex;
-            string packageName;
-
-            // Get all apps
-            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages");
-            if (_filteredOutput.Count > 0)
+            try
             {
-                foreach (string allApp in _filteredOutput)
+                int startIndex;
+                string packageName;
+
+                // Get all apps
+                await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages");
+                if (_output.Count > 0)
                 {
-                    startIndex = allApp.IndexOf(START_PATTERN) + START_PATTERN.Length;
-                    packageName = allApp.Substring(startIndex);
-                    allApps.Add(packageName);
+                    foreach (string allApp in _output)
+                    {
+                        startIndex = allApp.IndexOf(Constants.PATTERNS.APP_START_PATTERN) + Constants.PATTERNS.APP_START_PATTERN.Length;
+                        packageName = allApp.Substring(startIndex);
+                        allApps.Add(packageName);
+                    }
+                }
+
+                // Get only system apps
+                await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages -s");
+                if (_output.Count > 0)
+                {
+                    foreach (string systemApp in _output)
+                    {
+                        startIndex = systemApp.IndexOf(Constants.PATTERNS.APP_START_PATTERN) + Constants.PATTERNS.APP_START_PATTERN.Length;
+                        packageName = systemApp.Substring(startIndex);
+                        systemApps.Add(packageName);
+                    }
+                }
+
+                // Get only 3d party packages
+                await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages -3");
+                if (_output.Count > 0)
+                {
+                    foreach (string thirdPartyApp in _output)
+                    {
+                        startIndex = thirdPartyApp.IndexOf(Constants.PATTERNS.APP_START_PATTERN) + Constants.PATTERNS.APP_START_PATTERN.Length;
+                        packageName = thirdPartyApp.Substring(startIndex);
+                        thirdPartyApps.Add(packageName);
+                    }
                 }
             }
-
-            // Get only system apps
-            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages -s");
-            if (_filteredOutput.Count > 0)
+            catch (Exception ex)
             {
-                foreach (string systemApp in _filteredOutput)
-                {
-                    startIndex = systemApp.IndexOf(START_PATTERN) + START_PATTERN.Length;
-                    packageName = systemApp.Substring(startIndex);
-                    systemApps.Add(packageName);
-                }
-            }
+                allApps = new List<string>();
+                systemApps = new List<string>();
+                thirdPartyApps = new List<string>();
 
-            // Get only 3d party packages
-            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm list packages -3");
-            if (_filteredOutput.Count > 0)
-            {
-                foreach (string thirdPartyApp in _filteredOutput)
-                {
-                    startIndex = thirdPartyApp.IndexOf(START_PATTERN) + START_PATTERN.Length;
-                    packageName = thirdPartyApp.Substring(startIndex);
-                    thirdPartyApps.Add(packageName);
-                }
+                MessageBox.Show
+                (
+                    $"Error getting device app list! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
             }
 
             return new Tuple<List<string>, List<string>, List<string>>(allApps, systemApps, thirdPartyApps);
         }
 
-        /// <summary>
-        /// Uninstall an app on target device.
-        /// </summary>
-        /// <param name="deviceIdentifier">Target device ID.</param>
-        /// <param name="packageName">Name of the package to uninstall.</param>
-        /// <returns>True if uninstalled successfully, otherwise false.</returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        internal static async Task<bool> UninstallApp(string deviceIdentifier, string packageName)
-        {
-            bool result = false;
-
-            await ExecuteCommand($"adb -s {deviceIdentifier} shell pm uninstall -k --user 0 {packageName}");
-
-            if (_filteredOutput.Count > 0)
-            {
-                result = _filteredOutput.Last().Equals("Success") ? true : false;
-            }
-
-            return result;
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        //                                                                    //
-        //                                COMMANDS                            //
-        //                                                                    //
-        ////////////////////////////////////////////////////////////////////////
-
-        /// <summary>
-        /// Executes a command in ADB command prompt.
-        /// </summary>
-        /// <param name="command">Command to be executed.</param>
-        /// <param name="response">Response to be given.</param>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        private static async Task ExecuteCommand(string command, string response = null)
-        {
-            _filteredOutput.Clear();
-
-            using (Process _adbProcess = new Process())
-            {
-                _adbProcess.StartInfo.CreateNoWindow = true;
-                _adbProcess.StartInfo.FileName = "cmd.exe";
-                _adbProcess.StartInfo.RedirectStandardInput = true;
-                _adbProcess.StartInfo.RedirectStandardOutput = true;
-                _adbProcess.StartInfo.RedirectStandardError = true;
-                _adbProcess.StartInfo.UseShellExecute = false;
-                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
-
-                // Add event to read received output data
-                _adbProcess.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(e.Data))
-                    {
-                        _rawOutput.Add(e.Data);
-
-                        // Exclude sent commands
-                        if (!e.Data.Contains("adb ") && !e.Data.Contains("attached") && !e.Data.Contains("Microsoft") && !e.Data.Contains("PlatformTools") && !e.Data.Contains("exit"))
-                        {
-                            _filteredOutput.Add(e.Data);
-                        }
-                    }
-                };
-
-                // Start process
-                _adbProcess.Start();
-                _adbProcess.StandardInput.WriteLine("echo off");
-                _adbProcess.BeginOutputReadLine();
-                _adbProcess.BeginErrorReadLine();
-
-                // Wait for command to be executed
-                await Task.Run(async () =>
-                {
-                    // Send parameter command
-                    _adbProcess.StandardInput.WriteLine(command);
-                    _adbProcess.StandardInput.Flush();
-
-                    // Wait operation to be completed
-                    await Task.Delay(Utils.CalculateWaitingTime(command));
-
-                    if (response != null)
-                    {
-                        _adbProcess.StandardInput.WriteLine(response);
-                        _adbProcess.StandardInput.Flush();
-
-                        await Task.Delay(Utils.CalculateWaitingTime(command));
-                    }
-
-                    // Send exit command
-                    _adbProcess.StandardInput.WriteLine("exit");
-                });
-
-                // Waiting process exit
-                await Task.Run(() => _adbProcess.WaitForExit());
-
-                // Return according to process exit code
-                if (!_adbProcess.ExitCode.Equals(0))
-                {
-                    throw new PlatformToolsProcessException("ExecuteCommand(): Process exit code 1");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Starts ADB server.
-        /// </summary>
-        /// <returns></returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        private static async Task StartServer()
-        {
-            await ExecuteCommand("adb start-server");
-        }
-
-        /// <summary>
-        /// Executes a pull command in ADB command prompt.
-        /// </summary>
-        /// <returns>Pulled files count.</returns>
-        /// <exception cref="PlatformToolsProcessException"></exception>
-        /// <exception cref="PlatformToolsTransferException"></exception>
-        private static async Task<int> ExecutePullCommand(string sourceDeviceIdentifier, string sourceDeviceFolder, bool unlimitedBackupProcess = false)
-        {
-            _filteredOutput.Clear();
-
-            List<string> splittedSourceDeviceFolder = sourceDeviceFolder.Split(new char[] { '\\', '/' }).Where
-                    (splitted =>
-                        !string.IsNullOrWhiteSpace(splitted) &&
-                        !splitted.Contains("storage") &&
-                        !splitted.Contains("emulated") &&
-                        !splitted.Contains("0")
-                    ).ToList();
-
-            splittedSourceDeviceFolder.RemoveAt(splittedSourceDeviceFolder.Count() - 1);
-            string destinationPath = string.Join("/", splittedSourceDeviceFolder);
-
-            string localDestinationFolderPath = string.Empty;
-
-            // If it's a unlimited backup process, set right folders
-            if (unlimitedBackupProcess)
-            {
-                localDestinationFolderPath = Path.Combine(Utils.ProgramFolders.UnlimitedBackupDeviceDirectory, destinationPath).Replace('\\', '/');
-            }
-            else
-            {
-                localDestinationFolderPath = Path.Combine(Utils.ProgramFolders.ExtractDeviceDirectory, destinationPath).Replace('\\', '/');
-            }
-
-            Directory.CreateDirectory(localDestinationFolderPath);
-
-            string command = $"adb -s {sourceDeviceIdentifier} pull \"{sourceDeviceFolder}\" \"{localDestinationFolderPath}\"";
-
-            using (Process _adbProcess = new Process())
-            {
-                _adbProcess.StartInfo.CreateNoWindow = true;
-                _adbProcess.StartInfo.FileName = "cmd.exe";
-                _adbProcess.StartInfo.RedirectStandardInput = true;
-                _adbProcess.StartInfo.RedirectStandardOutput = true;
-                _adbProcess.StartInfo.RedirectStandardError = true;
-                _adbProcess.StartInfo.UseShellExecute = false;
-                _adbProcess.StartInfo.WorkingDirectory = Utils.ProgramFolders.PlatformToolsDirectory;
-
-                // Add an event to read received output data
-                _adbProcess.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(e.Data))
-                    {
-                        _rawOutput.Add(e.Data);
-                    }
-                };
-
-                // Add an event to read received errors
-                _adbProcess.ErrorDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(e.Data))
-                    {
-                        _rawOutput.Add(e.Data);
-
-                        // Filter output data
-                        if (e.Data.Contains("pulled") && e.Data.Contains("skipped"))
-                        {
-                            _filteredOutput.Add(e.Data);
-                        }
-                    }
-                };
-
-                // Start the process
-                _adbProcess.Start();
-                _adbProcess.StandardInput.WriteLine("echo off");
-                _adbProcess.BeginOutputReadLine();
-                _adbProcess.BeginErrorReadLine();
-
-                // Send command with specified parameters
-                _adbProcess.StandardInput.WriteLine(command);
-                _adbProcess.StandardInput.Flush();
-
-                // Wait asynchronously for the operation to complete
-                while (!_filteredOutput.Count.Equals(1))
-                {
-                    await Task.Delay(50);
-
-#if DEBUG
-                    Debug.WriteLine("Extracting in progress...");
-#endif
-                }
-
-                #region "Check copied files count"
-
-                int pulledFiles = 0;
-                int skippedFiles = 0;
-                var lastLine = _filteredOutput.Last();
-
-                if (lastLine.Contains("pulled"))
-                {
-                    // Extract pulled files count
-                    const string START_PATTERN_3 = ": ";
-                    const string END_PATTERN_3 = " files";
-                    int start_3 = lastLine.IndexOf(START_PATTERN_3) + START_PATTERN_3.Length;
-                    int end_3 = lastLine.IndexOf(END_PATTERN_3);
-                    string pulledFilesString = lastLine.Substring(start_3, end_3 - start_3);
-
-                    const string START_PATTERN_4 = ", ";
-                    const string END_PATTERN_4 = " skipped";
-                    int start_4 = lastLine.IndexOf(START_PATTERN_4) + START_PATTERN_4.Length;
-                    int end_4 = lastLine.IndexOf(END_PATTERN_4);
-                    string skippedFilesString = lastLine.Substring(start_4, end_4 - start_4);
-
-                    if (!int.TryParse(pulledFilesString, out pulledFiles) && !int.TryParse(skippedFilesString, out skippedFiles))
-                    {
-                        throw new PlatformToolsTransferException("ExecutePullCommand(): Error parsing pulled files count.");
-                    }
-                }
-                else
-                {
-                    throw new PlatformToolsTransferException("ExecutePullCommand(): Error reading output last line.");
-                }
-
-                #endregion
-
-                // Send exit command
-                _adbProcess.StandardInput.WriteLine("exit");
-
-                // Wait for process to exit
-                await Task.Run(() => _adbProcess.WaitForExit());
-
-                // Return based on process exit code
-                if (!_adbProcess.ExitCode.Equals(0))
-                {
-                    throw new PlatformToolsProcessException("ExecutePullCommand(): Process exit code 1.");
-                }
-                else
-                {
-                    return pulledFiles - skippedFiles;
-                }
-            }
-        }
-
     }
 }
-
-*/

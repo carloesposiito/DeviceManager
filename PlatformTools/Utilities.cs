@@ -10,12 +10,12 @@ namespace PlatformTools
     /// <summary>
     /// Class holding all program utilities.<br/>
     /// </summary>
-    internal class Utilities
+    public class Utilities
     {
         /// <summary>
         /// Constructor of the class.
         /// </summary>
-        internal Utilities() { }
+        public Utilities() { }
 
         /// <summary>
         /// Extracts zip archive to destination directory (created if not existing).<br/>
@@ -176,10 +176,61 @@ namespace PlatformTools
         }
 
         /// <summary>
+        /// Read pulled files from final string of a push operation.<br/>
+        /// Throws exception if operation fails.
+        /// </summary>
+        /// <param name="pulledLine">Final line.</param>
+        /// <returns>
+        /// Returns a tuple where:<br/>
+        /// - Item 1 are total pulled files count.<br/>
+        /// - Item 2 are totale skipped files count.
+        /// </returns>
+        internal Tuple<int,int> ReadPulledFiles(string pulledLine)
+        {
+            Tuple<int, int> operationResult = new Tuple<int, int>(0,0);
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(pulledLine))
+                {
+                    if (pulledLine.Contains(Constants.PATTERNS.PULLED_COMMAND_PATTERN))
+                    {
+                        const string START_PATTERN_3 = ": ";
+                        const string END_PATTERN_3 = " file";
+                        int start_3 = pulledLine.IndexOf(START_PATTERN_3) + START_PATTERN_3.Length;
+                        int end_3 = pulledLine.IndexOf(END_PATTERN_3);
+                        string pulledFilesString = pulledLine.Substring(start_3, end_3 - start_3);
+
+                        const string START_PATTERN_4 = ", ";
+                        const string END_PATTERN_4 = " skipped";
+                        int start_4 = pulledLine.IndexOf(START_PATTERN_4) + START_PATTERN_4.Length;
+                        int end_4 = pulledLine.IndexOf(END_PATTERN_4);
+                        string skippedFilesString = pulledLine.Substring(start_4, end_4 - start_4);
+                        
+                        if (!int.TryParse(pulledFilesString, out int pulledFiles) || !int.TryParse(skippedFilesString, out int skippedFiles))
+                        {
+                            throw new Exception("Error reading line of pulled/skipped files!");
+                        }
+                        else
+                        {
+                            operationResult = new Tuple<int, int>(pulledFiles, skippedFiles);
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return operationResult;
+        }
+
+        /// <summary>
         /// Browse folder.
         /// </summary>
         /// <returns>Path to selected folder.</returns>
-        internal string BrowseFolder()
+        public string BrowseFolder()
         {
             string selectedFolder = string.Empty;
 

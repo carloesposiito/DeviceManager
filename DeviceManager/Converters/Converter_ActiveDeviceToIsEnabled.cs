@@ -1,24 +1,26 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.Globalization;
+using PlatformTools;
 using System.Windows;
 using System.Windows.Data;
-using PlatformTools;
 
 namespace DeviceManager.Converters
 {
-    internal class Converter_DevicesToVisibility : IValueConverter
+    internal class Converter_ActiveDeviceToIsEnabled : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            Visibility resultVisibility = Visibility.Collapsed;
+            bool isEnabled = false;
 
-            if (value is ObservableCollection<Device> connectedDevices)
+            if (value != null)
             {
-                resultVisibility = connectedDevices.Count.Equals(0) ? Visibility.Collapsed : Visibility.Visible;
+                if (value is Device connectedDevices)
+                {
+                    isEnabled = true;
+                }
             }
 
-            return resultVisibility;
+            return isEnabled;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

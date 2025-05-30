@@ -16,12 +16,17 @@ namespace DeviceManager
 
         private ADB _adb;
         private List<string> _rawOutput = new List<string>();
-        private List<string> _output = new List<string>();       
+        private List<string> _output = new List<string>();
         private bool _programInitialized = false;
         private bool _isFree = true;
         private ObservableCollection<Device> _connectedDevices = new ObservableCollection<Device>();
         private Device _activeDevice;
         private bool _pairing = false;
+        private string _destinationFolder = string.Empty;
+        private string _backupFolder = string.Empty;
+        private ObservableCollection<string> _allApps = new ObservableCollection<string>();
+        private ObservableCollection<string> _systemApps = new ObservableCollection<string>();
+        private ObservableCollection<string> _thirdyPartApps = new ObservableCollection<string>();
 
         #endregion
 
@@ -112,16 +117,75 @@ namespace DeviceManager
             }
         }
 
+        public string DestinationFolder
+        {
+            get => _destinationFolder;
+            set
+            {
+                _destinationFolder = value;
+                OnPropertyChanged(nameof(DestinationFolder));
+            }
+        }
+
+        public string BackupFolder
+        {
+            get => _backupFolder;
+            set
+            {
+                _backupFolder = value;
+                OnPropertyChanged(nameof(BackupFolder));
+            }
+        }
+
+        public ObservableCollection<string> AllApps
+        {
+            get => _allApps;
+            set
+            {
+                if (_allApps != value)
+                {
+                    _allApps = value;
+                    OnPropertyChanged(nameof(AllApps));
+                }
+            }
+        }
+
+        public ObservableCollection<string> ThirdyPartApps
+        {
+            get => _thirdyPartApps;
+            set
+            {
+                if (_thirdyPartApps != value)
+                {
+                    _thirdyPartApps = value;
+                    OnPropertyChanged(nameof(ThirdyPartApps));
+                }
+            }
+        }
+
+        public ObservableCollection<string> SystemApps
+        {
+            get => _systemApps;
+            set
+            {
+                if (_systemApps != value)
+                {
+                    _systemApps = value;
+                    OnPropertyChanged(nameof(SystemApps));
+                }
+            }
+        }
+
         #endregion
 
         public Homepage()
         {
             InitializeComponent();
             DataContext = this;
-            
+
             // Initialize adb object
             _adb = new ADB(ref _rawOutput, ref _output);
-            
+
             // Add event to loading completed
             this.Loaded += Homepage_LoadingCompleted;
         }
@@ -139,7 +203,7 @@ namespace DeviceManager
         private async void btn_ScanDevices_Click(object sender, RoutedEventArgs e)
         {
             await ScanDevices();
-        }       
+        }
 
         private void checkBox_PairingNeeded_Click(object sender, RoutedEventArgs e)
         {
@@ -158,6 +222,7 @@ namespace DeviceManager
                     if (operationResult)
                     {
                         await ScanDevices();
+                        MessageBox.Show("Wireless connection succeed! Please scan devices again.");
                     }
                     else
                     {
@@ -231,12 +296,14 @@ namespace DeviceManager
                     IsFree = false;
 
                     Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0, 0, 0);
-                    operationResult = await _adb.TransferFolder(ActiveDevice.Id);
+                    operationResult = await _adb.TransferFolder(ActiveDevice);
 
-                    if (!operationResult.Item1.Equals(0) && !operationResult.Item2.Equals(0) && !operationResult.Item3.Equals(0))
+                    if (!operationResult.Item1.Equals(0) && !operationResult.Item2.Equals(0))
                     {
                         // Everything OK
-                        MessageBox.Show($"Transferred {operationResult.Item2}//{operationResult.Item1} files ({operationResult.Item3} files skipped).");
+                        MessageBox.Show(
+                            $"Transferred {operationResult.Item2}//{operationResult.Item1} files.\n" +
+                            $"{operationResult.Item3} files skipped.");
                     }
                 }
                 catch (Exception ex)
@@ -244,6 +311,196 @@ namespace DeviceManager
                     MessageBox.Show
                     (
                         $"Error transferring files! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
+            }
+        }
+
+        private void btn_SelectDestinationFolder_Click(object sender, RoutedEventArgs e)
+        {
+            Utilities utilities = new Utilities();
+            DestinationFolder = utilities.BrowseFolder();
+        }
+
+        private void btn_SelectBackupFolder_Click(object sender, RoutedEventArgs e)
+        {
+            Utilities utilities = new Utilities();
+            BackupFolder = utilities.BrowseFolder();
+        }
+
+        private async void btn_PerformBackup_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+
+                    #region "Populate folder to be extracted list according to selected checkboxes"
+
+                    List<string> foldersToBeExtracted = new List<string>();
+
+                    if ((bool)checkBox_Everything.IsChecked)
+                    {
+                        foldersToBeExtracted.Add(ActiveDevice.DeviceFolderPath);
+                    }
+                    else
+                    {
+                        if ((bool)checkBox_WhatsAppAll.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.WhatsAppFolderPath);
+                        }
+                        else
+                        {
+                            if ((bool)checkBox_WhatsApp_Backups.IsChecked)
+                            {
+                                foldersToBeExtracted.Add(ActiveDevice.WhatsAppBackupsFolderPath);
+                            }
+
+                            if ((bool)checkBox_WhatsApp_Database.IsChecked)
+                            {
+                                foldersToBeExtracted.Add(ActiveDevice.WhatsAppDatabasesFolderPath);
+                            }
+
+                            if ((bool)checkBox_WhatsApp_Media.IsChecked)
+                            {
+                                foldersToBeExtracted.Add(ActiveDevice.WhatsAppMediaFolderPath);
+                            }
+                        }
+
+                        if ((bool)checkBox_Alarms.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.AlarmsFolderPath);
+                        }
+
+                        if ((bool)checkBox_DCIM.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.DcimFolderPath);
+                        }
+
+                        if ((bool)checkBox_Documents.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.DocumentsFolderPath);
+                        }
+
+                        if ((bool)checkBox_Downloads.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.DownloadsFolderPath);
+                        }
+
+                        if ((bool)checkBox_Music.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.MusicFolderPath);
+                        }
+
+                        if ((bool)checkBox_Pictures.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.PicturesFolderPath);
+                        }
+
+                        if ((bool)checkBox_Ringtones.IsChecked)
+                        {
+                            foldersToBeExtracted.Add(ActiveDevice.RingtonesFolderPath);
+                        }
+                    }
+
+                    #endregion
+
+                    var operationResult = await _adb.BackupFolders(ActiveDevice, foldersToBeExtracted, DestinationFolder);
+                    if (!operationResult.Item1.Equals(0))
+                    {
+                        string destinationFolder = string.IsNullOrWhiteSpace(DestinationFolder) ? Constants.PATHS.BACKUP_DIR : DestinationFolder;
+
+                        // Everything OK
+                        MessageBox.Show(
+                            $"Pulled {operationResult.Item1} files.\n" +
+                            $"{operationResult.Item2} files skipped.\n\n" +
+                            $"Destination folder:\n" +
+                            $"\"{destinationFolder}\"");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show
+                    (
+                        $"Error while performing backup! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
+            }
+        }
+
+        private async void btn_RestoreBackup_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+
+                    var operationResult = await _adb.RestoreBackup(ActiveDevice, BackupFolder);
+                    if (!operationResult.Item1.Equals(0) && !operationResult.Item2.Equals(0))
+                    {
+                        // Everything OK
+                        MessageBox.Show(
+                            $"Transferred {operationResult.Item2}//{operationResult.Item1} files.\n" +
+                            $"{operationResult.Item3} files skipped.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show
+                    (
+                        $"Error while restoring a backup! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
+            }
+        }
+
+        private async void btn_RefreshApps_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+
+                    AllApps = new ObservableCollection<string>();
+                    ThirdyPartApps = new ObservableCollection<string>();
+                    SystemApps = new ObservableCollection<string>();
+
+                    var operationResult = await _adb.GetApplications(ActiveDevice.Id);
+                    if (operationResult.Item1.Count > 0 && operationResult.Item2.Count > 0 && operationResult.Item3.Count > 0)
+                    {
+                        AllApps = new ObservableCollection<string>(operationResult.Item1);
+                        cb_AllApps.SelectedIndex = 0;
+
+                        SystemApps = new ObservableCollection<string>(operationResult.Item2);
+                        cb_SystemApps.SelectedIndex = 0;
+
+                        ThirdyPartApps = new ObservableCollection<string>(operationResult.Item2);
+                        cb_ThirdyPartApps.SelectedIndex = 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show
+                    (
+                        $"Error while refreshing device apps! Error details:\n\n" +
                         $"{ex.Message}"
                     );
                 }
@@ -265,9 +522,12 @@ namespace DeviceManager
                     IsFree = false;
                     ActiveDevice = null;
                     ConnectedDevices = new ObservableCollection<Device>();
-                    
+
                     // Refresh
                     ConnectedDevices = new ObservableCollection<Device>(await _adb.ScanDevices());
+
+                    // Select first element of the list
+                    cb_ConnectedDevices.SelectedIndex = 0;
                 }
                 catch (Exception ex)
                 {
@@ -296,6 +556,6 @@ namespace DeviceManager
         }
 
         #endregion
-
+        
     }
 }

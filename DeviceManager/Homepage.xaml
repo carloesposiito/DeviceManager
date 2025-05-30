@@ -7,7 +7,7 @@
         xmlns:converters="clr-namespace:DeviceManager.Converters"
         mc:Ignorable="d"
         Closed="Homepage_Closed"
-        Height="600"
+        Height="630"
         IsEnabled="{Binding ProgramInitialized}"
         ResizeMode="NoResize"
         Title="DeviceManager"
@@ -17,10 +17,14 @@
 
     <Window.Resources>
         <converters:Converter_IsFreeToCursor x:Key="converter_IsFreeToCursor" />
-        <converters:Converter_DevicesToVisibility x:Key="converter_DevicesToVisibility" />
+        <converters:Converter_ActiveDeviceToVisibility x:Key="converter_ActiveDeviceToVisibility" />
+        <converters:Converter_ActiveDeviceToIsEnabled x:Key="converter_Converter_ActiveDeviceToIsEnabled" />
         <converters:Converter_AuthStatusToVisibility x:Key="converter_AuthStatusToVisibility" />
         <converters:Converter_AuthStatusToVisibility_Reverse x:Key="converter_AuthStatusToVisibility_Reverse" />
         <converters:Converter_PairingToVisibility x:Key="converter_PairingToVisibility" />
+        <converters:Converter_DirExistsToIsEnabled x:Key="converter_DirExistsToIsEnabled" />
+        <converters:Converter_ActiveDeviceToTabAppsName x:Key="converter_ActiveDeviceToTabAppsName" />
+        <converters:Converter_ActiveDeviceToTabFilesName x:Key="converter_ActiveDeviceToTabFilesName" />
     </Window.Resources>
 
     <Grid Cursor="{Binding IsFree, Converter={StaticResource converter_IsFreeToCursor}}">
@@ -34,24 +38,55 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-
+                    
                     <!--Devices groupbox-->
                     <GroupBox Grid.Row="0"
                               Style="{StaticResource gp_Default}">
                         <GroupBox.Header>
-                            <Label Content="Scanning"
+                            <Label Content="Devices"
                                    FontStyle="Italic" />
                         </GroupBox.Header>
-                        
-                        <Button Click="btn_ScanDevices_Click"
-                                Content="Scan devices"
-                                Style="{StaticResource btn_Default}"
-                                x:Name="btn_ScanDevices" />
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            
+                            <Button Click="btn_ScanDevices_Click"
+                                    Content="Scan devices"
+                                    Grid.Row="0"
+                                    Margin="0,10,0,5"
+                                    Style="{StaticResource btn_Default}"
+                                    x:Name="btn_ScanDevices" />
+
+                            <Grid Grid.Row="1" Margin="0,0,0,5">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Current active device:"
+                                       Grid.Row="0"
+                                       Style="{StaticResource lbl_Default}" />
+
+                                <ComboBox ItemsSource="{Binding ConnectedDevices}"
+                                          IsEnabled="{Binding ActiveDevice, Converter={StaticResource converter_Converter_ActiveDeviceToIsEnabled}}"
+                                          DisplayMemberPath="Model"
+                                          Grid.Row="1"
+                                          SelectedIndex="0"
+                                          SelectionChanged="cb_ConnectedDevices_SelectionChanged"
+                                          Style="{StaticResource combo_Default}"
+                                          x:Name="cb_ConnectedDevices" />
+
+                            </Grid>
+
+                        </Grid>
                         
                     </GroupBox>
 
                     <!--Wireless connection groupbox-->
-                    <GroupBox Grid.Row="1"
+                    <GroupBox Grid.Row="2"
                               Style="{StaticResource gp_Default}">
                         <GroupBox.Header>
                             <Label Content="Wireless connection"
@@ -119,75 +154,59 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Devices"
-                     Visibility="{Binding ConnectedDevices, Converter={StaticResource converter_DevicesToVisibility}}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+            <TabItem Header="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToTabFilesName}}"
+                     d:Header="Pixel 1 - Files"
+                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToVisibility}}">
+                
+                <ScrollViewer VerticalScrollBarVisibility="Hidden">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                    <!--Devices groupbox-->
-                    <GroupBox Grid.Row="0"
-                              Style="{StaticResource gp_Default}">
-                        <GroupBox.Header>
-                            <Label Content="Connected devices"
-                                   FontStyle="Italic" />
-                        </GroupBox.Header>
-
-                        <ComboBox ItemsSource="{Binding ConnectedDevices}"
-                                  DisplayMemberPath="Model"
-                                  SelectedIndex="0"
-                                  SelectionChanged="cb_ConnectedDevices_SelectionChanged"
-                                  Style="{StaticResource combo_Default}"
-                                  x:Name="cb_ConnectedDevices" />
-
-                    </GroupBox>
-                    
-                    <!--Authorization groupbox-->
-                    <GroupBox Grid.Row="1"
-                              Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility_Reverse}}"
-                              Style="{StaticResource gp_Default}">
-                        <GroupBox.Header>
-                            <Label Content="Authorization"
-                                   FontStyle="Italic" />
-                        </GroupBox.Header>
-
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="60*" />
-                                <ColumnDefinition Width="40*" />
-                            </Grid.ColumnDefinitions>
-
-                            <Label Content="Please authorize device to continue:"
-                                   Grid.Column="0"
-                                   Style="{StaticResource lbl_Default}" />
-
-                            <Button Content="Authorize"
-                                    Click="btn_AuthorizeDevice_Click"
-                                    Grid.Column="1"
-                                    Margin="0"
-                                    Style="{StaticResource btn_Operations}" />
-
-                        </Grid>
-
-                    </GroupBox>
-
-                    <!--Operations groupbox-->
-                    <GroupBox Grid.Row="2"
-                              Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
-                              Style="{StaticResource gp_Default}">
-                        <GroupBox.Header>
-                            <Label Content="Operations"
-                                   FontStyle="Italic" />
-                        </GroupBox.Header>
-
-                        <StackPanel Orientation="Vertical">
-                            
+                        <!--Authorization groupbox-->
+                        <GroupBox Grid.Row="0"
+                                  d:Visibility="Collapsed"
+                                  Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility_Reverse}}"
+                                  Style="{StaticResource gp_Default}">
+                            <GroupBox.Header>
+                                <Label Content="Authorization"
+                                       FontStyle="Italic" />
+                            </GroupBox.Header>
 
                             <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60*" />
+                                    <ColumnDefinition Width="40*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Label Content="Please authorize device to continue:"
+                                       Grid.Column="0"
+                                       Style="{StaticResource lbl_Default}" />
+
+                                <Button Content="Authorize"
+                                        Click="btn_AuthorizeDevice_Click"
+                                        Grid.Column="1"
+                                        Margin="0"
+                                        Style="{StaticResource btn_Operations}" />
+
+                            </Grid>
+
+                        </GroupBox>
+
+                        <!--Operations groupbox-->
+                        <GroupBox Grid.Row="1"
+                                  Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
+                                  Style="{StaticResource gp_Default}">
+                            <GroupBox.Header>
+                                <Label Content="Operations"
+                                       FontStyle="Italic" />
+                            </GroupBox.Header>
+                            
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="60*" />
                                     <ColumnDefinition Width="40*" />
@@ -204,66 +223,429 @@
                                         Click="btn_TransferFiles_Click" />
                             </Grid>
 
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60*" />
-                                    <ColumnDefinition Width="40*" />
-                                </Grid.ColumnDefinitions>
+                        </GroupBox>
 
-                                <Label Content="Restore a backup:"
-                                       Grid.Column="0"
+                        <!--Backup groupbox-->
+                        <GroupBox Grid.Row="2"
+                                  Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
+                                  Style="{StaticResource gp_Default}">
+                            <GroupBox.Header>
+                                <Label Content="Backup"
+                                       FontStyle="Italic" />
+                            </GroupBox.Header>
+
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0"
+                                      Margin="0,0,0,20">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="Folder to include:"
+                                           Grid.Row="0"
+                                           Style="{StaticResource lbl_Default}" />
+
+                                    <!--Folders checkboxes-->
+                                    <Grid Grid.Row="1">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition />
+                                            <RowDefinition />
+                                            <RowDefinition />
+                                            <RowDefinition />
+                                            <RowDefinition />
+                                            <RowDefinition />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!--Alarms-->
+                                        <CheckBox Content="Alarms"
+                                                  Grid.Column="0"
+                                                  Grid.Row="0"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_Alarms" />
+
+                                        <!--DCIM-->
+                                        <CheckBox Content="DCIM"
+                                                  Grid.Column="0"
+                                                  Grid.Row="1"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_DCIM" />
+
+                                        <!--Documents-->
+                                        <CheckBox Content="Documents"
+                                                  Grid.Column="0"
+                                                  Grid.Row="2"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_Documents" />
+
+                                        <!--Downloads-->
+                                        <CheckBox Content="Downloads"
+                                                  Grid.Column="0"
+                                                  Grid.Row="3"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_Downloads" />
+
+                                        <!--Music-->
+                                        <CheckBox Content="Music"
+                                                  Grid.Column="1"
+                                                  Grid.Row="0"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_Music" />
+
+                                        <!--Pictures-->
+                                        <CheckBox Content="Pictures"
+                                                  Grid.Column="1"
+                                                  Grid.Row="1"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_Pictures" />
+
+                                        <!--Ringtones-->
+                                        <CheckBox Content="Ringtones"
+                                                  Grid.Column="1"
+                                                  Grid.Row="2"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_Ringtones" />
+
+                                        <CheckBox Content="Everything"
+                                                  Grid.Column="1"
+                                                  Grid.Row="3"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_Everything" />
+
+                                        <CheckBox Content="WA - Backup"
+                                                  Grid.Column="2"
+                                                  Grid.Row="0"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_WhatsApp_Backups" />
+
+                                        <CheckBox Content="WA - Database"
+                                                  Grid.Column="2"
+                                                  Grid.Row="1"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_WhatsApp_Database" />
+
+                                        <CheckBox Content="WA - Media"
+                                                  Grid.Column="2"
+                                                  Grid.Row="2"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_WhatsApp_Media" />
+
+                                        <CheckBox Content="WA - Everything"
+                                                  Grid.Column="2"
+                                                  Grid.Row="3"
+                                                  Style="{StaticResource cb_SelectDeviceFolders}"
+                                                  x:Name="checkBox_WhatsAppAll" />
+
+                                    </Grid>
+
+                                </Grid>
+
+                                <Grid Grid.Row="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="Destination folder:"
+                                           Grid.Row="0"
+                                           Visibility="Collapsed"
+                                           Style="{StaticResource lbl_Default}" />
+
+                                    <TextBox Grid.Row="1"
+                                             IsEnabled="False"
+                                             Margin="0,0,0,10"
+                                             Style="{StaticResource tb_Default}"
+                                             Text="{Binding DestinationFolder}"
+                                             Visibility="Collapsed"
+                                             x:Name="tb_DestinationFolderAddress" />
+
+                                    <Button Click="btn_SelectDestinationFolder_Click"
+                                            Content="Select destination folder"
+                                            Grid.Row="2"
+                                            Margin="0,0,0,10"
+                                            Style="{StaticResource btn_Operations}"
+                                            Visibility="Collapsed"/>
+
+                                    <Button Content="Make backup now"
+                                            Click="btn_PerformBackup_Click"
+                                            Grid.Row="3"
+                                            Margin="0,0,0,10"
+                                            Style="{StaticResource btn_Default}" />
+
+                                </Grid>
+
+                            </Grid>
+                        </GroupBox>
+
+                        <!--Backup groupbox-->
+                        <GroupBox Grid.Row="3"
+                                  Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
+                                  Style="{StaticResource gp_Default}">
+                            <GroupBox.Header>
+                                <Label Content="Restore"
+                                       FontStyle="Italic" />
+                            </GroupBox.Header>
+
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Select and restore a backup made with this tool previosuly:"
+                                       Grid.Row="0"
                                        Style="{StaticResource lbl_Default}" />
 
-                                <Button Content="Select backup folder"
-                                        Grid.Column="1"
-                                        Margin="0"
-                                        Style="{StaticResource btn_Operations}" />
+                                <TextBox Grid.Row="1"
+                                         IsEnabled="False"
+                                         Margin="0,0,0,10"
+                                         Style="{StaticResource tb_Default}"
+                                         Text="{Binding BackupFolder}"
+                                         x:Name="tb_DestinationFoldferAddress" />
+
+                                <Button Click="btn_SelectBackupFolder_Click"
+                                        Content="Select backup folder"
+                                        Grid.Row="2"
+                                        Margin="0,0,0,10"
+                                        Style="{StaticResource btn_Default}" />
+
+                                <Button Content="Restore backup now"
+                                        Click="btn_RestoreBackup_Click"
+                                        Grid.Row="3"
+                                        IsEnabled="{Binding BackupFolder, Converter={StaticResource converter_DirExistsToIsEnabled}}"
+                                        Margin="0,0,0,10"
+                                        Style="{StaticResource btn_Default}" />
+
                             </Grid>
+                        </GroupBox>
 
-                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            
+            </TabItem>
 
-                    </GroupBox>
+            <TabItem Header="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToTabAppsName}}"
+                     d:Header="Pixel 1 - Apps"
+                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToVisibility}}">
 
-                    <!--Backup groupbox-->
-                    <GroupBox Grid.Row="3"
-                              Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
-                              Style="{StaticResource gp_Default}">
-                        <GroupBox.Header>
-                            <Label Content="Backup"
-                                   FontStyle="Italic" />
-                        </GroupBox.Header>
+                <ScrollViewer VerticalScrollBarVisibility="Hidden">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition />
-                            </Grid.ColumnDefinitions>
+                        <!--Devices groupbox-->
+                        <GroupBox Grid.Row="0"
+                                  Style="{StaticResource gp_Default}">
+                            <GroupBox.Header>
+                                <Label Content="Device apps:"
+                                       FontStyle="Italic" />
+                            </GroupBox.Header>
 
-                            <Grid Grid.Column="0">
+                            <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition />
-                                    <RowDefinition />
-                                    <RowDefinition />
-                                    <RowDefinition />
-                                    <RowDefinition />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
+
+                                <Button Click="btn_RefreshApps_Click"
+                                        Content="Refresh app list"
+                                        Grid.Row="0"
+                                        Margin="0,10,0,5"
+                                        Style="{StaticResource btn_Default}"
+                                        x:Name="btn_ScanDevidces" />
+
+                                <Grid Grid.Row="1"
+                                      Margin="0,0,0,5">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="System apps:"
+                                           Grid.Row="0"
+                                           Style="{StaticResource lbl_Default}" />
+
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="70*" />
+                                            <ColumnDefinition Width="30*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ComboBox ItemsSource="{Binding SystemApps}"
+                                                  SelectedIndex="0"
+                                                  Style="{StaticResource combo_Default}"
+                                                  x:Name="cb_SystemApps" />
+
+                                        <Button Content="Disable" Grid.Column="1" Style="{StaticResource btn_Operations}" />
+
+                                    </Grid>
+                                </Grid>
+
+                                <Grid Grid.Row="2"
+                                      Margin="0,0,0,5">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="Thirdy part apps:"
+                                           Grid.Row="0"
+                                           Style="{StaticResource lbl_Default}" />
+
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="70*" />
+                                            <ColumnDefinition Width="30*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ComboBox ItemsSource="{Binding ThirdyPartApps}"
+                                                  SelectedIndex="0"
+                                                  Style="{StaticResource combo_Default}"
+                                                  x:Name="cb_ThirdyPartApps" />
+
+                                        <Button Content="Disable"
+                                                Grid.Column="1"
+                                                Style="{StaticResource btn_Operations}" />
+
+                                    </Grid>
+                                </Grid>
+
+                                <Grid Grid.Row="3"
+                                      Margin="0,0,0,5">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="All apps:"
+                                           Grid.Row="0"
+                                           Style="{StaticResource lbl_Default}" />
+
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="70*" />
+                                            <ColumnDefinition Width="30*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ComboBox ItemsSource="{Binding AllApps}"
+                                                  SelectedIndex="0"
+                                                  Style="{StaticResource combo_Default}"
+                                                  x:Name="cb_AllApps" />
+
+                                        <Button Content="Disable"
+                                                Grid.Column="1"
+                                                Style="{StaticResource btn_Operations}" />
+
+                                    </Grid>
+                                </Grid>
+
                             </Grid>
 
-                            <Grid Grid.Column="1">
+                        </GroupBox>
+
+                    </Grid>
+                </ScrollViewer>
+
+            </TabItem>
+
+            <TabItem Header="Photos"
+                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToVisibility}}">
+
+                <ScrollViewer VerticalScrollBarVisibility="Hidden">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!--Devices groupbox-->
+                        <GroupBox Grid.Row="0"
+                                  Style="{StaticResource gp_Default}">
+                            <GroupBox.Header>
+                                <Label Content="Move photos:"
+                                       FontStyle="Italic" />
+                            </GroupBox.Header>
+
+                            <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition />
-                                    <RowDefinition />
-                                    <RowDefinition />
-                                    <RowDefinition />
-                                    <RowDefinition />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0"
+                                      Margin="0,0,0,5">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="Select origin device:"
+                                           Grid.Row="0"
+                                           Style="{StaticResource lbl_Default}" />
+
+                                    <ComboBox ItemsSource="{Binding ConnectedDevices}"
+                                              Grid.Row="1"
+                                              SelectedIndex="0"
+                                              Style="{StaticResource combo_Default}"
+                                              x:Name="cb_OriginDevice" />
+                                </Grid>
+
+                                <Grid Grid.Row="1"
+                                      Margin="0,0,0,5">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="Select destination device:"
+                                           Grid.Row="0"
+                                           Style="{StaticResource lbl_Default}" />
+
+                                    <ComboBox ItemsSource="{Binding ConnectedDevices}"
+                                              Grid.Row="1"
+                                              SelectedIndex="0"
+                                              Style="{StaticResource combo_Default}"
+                                              x:Name="cb_DestinationDevice" />
+                                </Grid>
+
                             </Grid>
 
-                        </Grid>
-                        
-                    </GroupBox>
-                    
-                </Grid>
+                        </GroupBox>
+
+                    </Grid>
+                </ScrollViewer>
+
             </TabItem>
 
         </TabControl>
