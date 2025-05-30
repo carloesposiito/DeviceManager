@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
 
 namespace PlatformTools
 {
@@ -14,7 +16,7 @@ namespace PlatformTools
 
         private static List<string> _rawOutput;
         private static List<string> _output;
-        private Utilities _utilities = new Utilities();        
+        private Utilities _utilities = new Utilities();
 
         #endregion
 
@@ -37,7 +39,7 @@ namespace PlatformTools
         public async Task<bool> Initialize()
         {
             bool operationResult = true;
-            
+
             try
             {
                 _utilities.CheckPlatformTools();
@@ -169,7 +171,7 @@ namespace PlatformTools
                     _adbProcess.Start();
                     _adbProcess.StandardInput.WriteLine("echo off");
                     _adbProcess.BeginOutputReadLine();
-                    
+
                     #endregion
 
                     #region "Execute command"
@@ -369,6 +371,175 @@ namespace PlatformTools
             }
 
             return authResult;
+        }
+
+        /// <summary>
+        /// Executes a push command in ADB command prompt.<br/>
+        /// Handles exceptions returning 0 values.
+        /// </summary>
+        /// <returns>
+        /// Returns a tuple where:<br/>
+        /// - Item 1 is files to be transferred count.<br/>
+        /// - Item 2 is transferred files count.<br/>
+        /// - Item 3 is skipped files count.
+        /// </returns>
+        private async Task<Tuple<int,int,int>> ExecutePushCommand(string destinationDeviceIdentifier, string destinationDeviceFolder, string folderToBeTransferred)
+        {
+            Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0,0,0);
+            int transferredFiles = 0;
+            int totalFiles = Directory.GetFiles(folderToBeTransferred, "*", SearchOption.AllDirectories).Length;
+
+            try
+            {
+                if (!totalFiles.Equals(0))
+                {
+                    _output.Clear();
+
+                    using (Process _adbProcess = new Process())
+                    {
+                        using (CancellationTokenSource cts = new CancellationTokenSource())
+                        {
+                            #region "Create process"
+
+                            _adbProcess.StartInfo.CreateNoWindow = true;
+                            _adbProcess.StartInfo.FileName = "cmd.exe";
+                            _adbProcess.StartInfo.RedirectStandardInput = true;
+                            _adbProcess.StartInfo.RedirectStandardOutput = true;
+                            _adbProcess.StartInfo.RedirectStandardError = true;
+                            _adbProcess.StartInfo.UseShellExecute = false;
+                            _adbProcess.StartInfo.WorkingDirectory = Constants.PATHS.PLATFORM_TOOLS_DIR;
+
+                            _adbProcess.OutputDataReceived += (sender, e) =>
+                            {
+                                if (!string.IsNullOrWhiteSpace(e.Data))
+                                {
+                                    _rawOutput.Add(e.Data);
+                                }
+                            };
+
+                            _adbProcess.Start();
+                            _adbProcess.StandardInput.WriteLine("echo off");
+                            _adbProcess.BeginOutputReadLine();
+
+                            // Add event to read received errors
+                            // Transferred files lines are errors ???
+                            _adbProcess.ErrorDataReceived += (sender, e) =>
+                            {
+                                if (!string.IsNullOrWhiteSpace(e.Data))
+                                {
+                                    _rawOutput.Add(e.Data);
+                                    if (!string.IsNullOrWhiteSpace(e.Data) && e.Data.Contains(Constants.PATTERNS.PUSHED_COMMAND_PATTERN) && e.Data.Contains(Constants.PATTERNS.SKIPPED_COMMAND_PATTERN))
+                                    {
+                                        _output.Add(e.Data);
+                                    }
+                                }
+                            };
+
+                            #endregion
+
+                            #region "Run command"
+
+                            string command = $"adb -s {destinationDeviceIdentifier} push \"{folderToBeTransferred}\" \"{destinationDeviceFolder}\"";
+
+                            var commandTask = Task.Run(async () =>
+                            {
+                                _adbProcess.StandardInput.WriteLine(command);
+                                _adbProcess.StandardInput.Flush();
+
+                                // When transferring files there are no written lines
+                                // Only at the end of the process a text will appear
+                                // Wait till that moment
+                                while (!_output.Count.Equals(1))
+                                {
+                                    await Task.Delay(Constants.MISC.DEFAULT_WAITING_TIME);
+                                }
+
+                                // A bit more
+                                await Task.Delay(500);
+                            }, cts.Token);
+
+                            // Output should contain only final line after transferring completed.
+                            // Read skipped files count from it
+                            int skippedFiles = _utilities.ReadSkippedFiles(_output.Last());
+                            transferredFiles = totalFiles - skippedFiles;
+
+                            // Send exit command
+                            _adbProcess.StandardInput.WriteLine("exit");
+
+                            #endregion
+
+                            // Waiting process exit
+                            await Task.Run(() => _adbProcess.WaitForExit());
+
+                            // Return according to process exit code
+                            if (!_adbProcess.ExitCode.Equals(0))
+                            {
+                                throw new Exception("Wrong process exit code! Files may be transferred correctly.");
+                            }
+
+                            operationResult = new Tuple<int, int, int>(totalFiles, transferredFiles, skippedFiles);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                operationResult = new Tuple<int, int, int>(0, 0, 0);
+
+                MessageBox.Show
+                (
+                    $"Error transferring files to device! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }           
+
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Asks to select a folder to transfer it to device Documents folder.<br/>
+        /// Handles exceptions returning 0 values.
+        /// </summary>
+        /// <param name="destinationDeviceIdentifier">Destination device identifier.</param>
+        /// <returns>
+        /// Returns a tuple where:<br/>
+        /// - Item 1 is files to be transferred count.<br/>
+        /// - Item 2 is transferred files count.<br/>
+        /// - Item 3 is skipped files count.
+        /// </returns>
+        public async Task<Tuple<int, int, int>> TransferFolder(string destinationDeviceIdentifier)
+        {
+            Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0, 0, 0);
+            string destinationDeviceFolder = "";
+            string folderToBeTransferred = _utilities.BrowseFolder();
+            
+            if (!string.IsNullOrWhiteSpace(folderToBeTransferred))
+            {
+                operationResult = await ExecutePushCommand(destinationDeviceIdentifier, destinationDeviceFolder, folderToBeTransferred);
+            }
+
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Deletes Camera folder from target device.
+        /// </summary>
+        /// <param name="destionationDeviceIdentifier">Target device ID.</param>
+        public async Task ExecuteDeleteCameraCommand(string destionationDeviceIdentifier)
+        {
+            try
+            {
+                string command = $"adb -s {destionationDeviceIdentifier} shell \"rm -r /sdcard/DCIM/Camera\"";
+                await ExecuteCommand(command);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show
+                (
+                    $"Error deleting extracted photos folder! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }   
         }
 
     }

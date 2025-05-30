@@ -222,6 +222,38 @@ namespace DeviceManager
             }
         }
 
+        private async void btn_TransferFiles_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+
+                    Tuple<int, int, int> operationResult = new Tuple<int, int, int>(0, 0, 0);
+                    operationResult = await _adb.TransferFolder(ActiveDevice.Id);
+
+                    if (!operationResult.Item1.Equals(0) && !operationResult.Item2.Equals(0) && !operationResult.Item3.Equals(0))
+                    {
+                        // Everything OK
+                        MessageBox.Show($"Transferred {operationResult.Item2}//{operationResult.Item1} files ({operationResult.Item3} files skipped).");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show
+                    (
+                        $"Error transferring files! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
+            }
+        }
+
         #region "Functions"
 
         private async Task ScanDevices()

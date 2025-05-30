@@ -24,6 +24,8 @@ namespace PlatformTools
             internal const string MICROSOFT_PATTERN = "Microsoft";
             internal const string CURRENT_DIR_PATTERN = "PlatformTools";
             internal const string EXIT_COMMAND_PATTERN = "exit";
+            internal const string PUSHED_COMMAND_PATTERN = "pushed";
+            internal const string SKIPPED_COMMAND_PATTERN = "skipped";
         }
 
         /// <summary>

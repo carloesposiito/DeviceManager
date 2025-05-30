@@ -200,7 +200,8 @@
                                 <Button Content="Select folder"
                                         Grid.Column="1"
                                         Margin="0"
-                                        Style="{StaticResource btn_Operations}" />
+                                        Style="{StaticResource btn_Operations}"
+                                        Click="btn_TransferFiles_Click" />
                             </Grid>
 
                             <Grid>

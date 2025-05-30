@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace PlatformTools
 {
@@ -134,6 +135,72 @@ namespace PlatformTools
             }
 
             return waitingTime;
+        }
+
+        /// <summary>
+        /// Read skipped files from final string of a push operation.<br/>
+        /// Throws exception if operation fails.
+        /// </summary>
+        /// <param name="pushedLine">Final line.</param>
+        /// <returns>Skipped files count.</returns>
+        internal int ReadSkippedFiles(string pushedLine)
+        {
+            int skippedFiles = 0;
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(pushedLine))
+                {
+                    if (pushedLine.Contains(Constants.PATTERNS.PUSHED_COMMAND_PATTERN))
+                    {
+                        string START_PATTERN = ", ";
+                        int start = pushedLine.IndexOf(START_PATTERN) + START_PATTERN.Length;
+
+                        string END_PATTERN = $" {Constants.PATTERNS.SKIPPED_COMMAND_PATTERN}";
+                        int end = pushedLine.IndexOf(END_PATTERN);
+
+                        string transferredFilesStr = pushedLine.Substring(start, end - start);
+                        if (!int.TryParse(transferredFilesStr, out skippedFiles))
+                        {
+                            throw new Exception("Error reading line of transferred/skipped files!");
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return skippedFiles;
+        }
+
+        /// <summary>
+        /// Browse folder.
+        /// </summary>
+        /// <returns>Path to selected folder.</returns>
+        internal string BrowseFolder()
+        {
+            string selectedFolder = string.Empty;
+
+            try
+            {
+                using (var dialog = new FolderBrowserDialog())
+                {
+                    DialogResult result = dialog.ShowDialog();
+
+                    if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+                    {
+                        selectedFolder = dialog.SelectedPath;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                selectedFolder = string.Empty;
+            }
+            
+            return selectedFolder;
         }
     }
 }
