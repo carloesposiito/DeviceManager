@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -215,12 +216,8 @@ namespace PlatformTools
                     }
 
 #if DEBUG
-                    // If no device in debug mode add some fake devices
-                    if (foundDevices.Count.Equals(0))
-                    {
-                        foundDevices.Add(new Device($"Pixel 1\tdevice"));
-                        foundDevices.Add(new Device($"Pixel 2 XL\tunauthorized"));
-                    }
+                    foundDevices.Add(new Device($"Pixel 1\tdevice"));
+                    foundDevices.Add(new Device($"Pixel 2 XL\tunauthorized"));
 #endif
                 }
             }
@@ -833,5 +830,36 @@ namespace PlatformTools
             return new Tuple<List<string>, List<string>, List<string>>(allApps, systemApps, thirdPartyApps);
         }
 
+        /// <summary>
+        /// Uninstall an app on target device.
+        /// </summary>
+        /// <param name="deviceIdentifier">Target device ID.</param>
+        /// <param name="packageName">Name of the package to uninstall.</param>
+        /// <returns>True if uninstalled, otherwise false.</returns>
+        public async Task<bool> UninstallApp(string deviceIdentifier, string packageName)
+        {
+            bool result = false;
+
+            try
+            {
+                await ExecuteCommand($"adb -s {deviceIdentifier} shell pm uninstall -k --user 0 {packageName}");
+                if (_output.Count > 0)
+                {
+                    result = _output.Last().Equals("Success") ? true : false;
+                }
+            }
+            catch (Exception ex)
+            {
+                result = false;
+
+                MessageBox.Show
+                (
+                    $"Error uninstalling app from device! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }
+
+            return result;
+        }
     }
 }

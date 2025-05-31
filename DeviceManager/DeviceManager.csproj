@@ -67,9 +67,9 @@
     <Compile Include="Converters\Converter_ActiveDeviceToIsEnabled.cs" />
     <Compile Include="Converters\Converter_ActiveDeviceToTabAppsName.cs" />
     <Compile Include="Converters\Converter_ActiveDeviceToTabFilesName.cs" />
-    <Compile Include="Converters\Converter_AuthStatusToVisibility.cs" />
     <Compile Include="Converters\Converter_AuthStatusToVisibility_Reverse.cs" />
-    <Compile Include="Converters\Converter_ActiveDeviceToVisibility.cs" />
+    <Compile Include="Converters\Converter_AuthStatusToVisibility.cs" />
+    <Compile Include="Converters\Converter_DevicesCountToVisibility.cs" />
     <Compile Include="Converters\Converter_DirExistsToIsEnabled.cs" />
     <Compile Include="Converters\Converter_IsFreeToCursor.cs" />
     <Compile Include="Converters\Converter_PairingToVisibility.cs" />

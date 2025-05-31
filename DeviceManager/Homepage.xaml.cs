@@ -20,7 +20,7 @@ namespace DeviceManager
         private bool _programInitialized = false;
         private bool _isFree = true;
         private ObservableCollection<Device> _connectedDevices = new ObservableCollection<Device>();
-        private Device _activeDevice;
+        private Device _activeDevice = null;
         private bool _pairing = false;
         private string _destinationFolder = string.Empty;
         private string _backupFolder = string.Empty;
@@ -212,22 +212,15 @@ namespace DeviceManager
 
         private async void btn_ConnectWirelessDevice_Click(object sender, RoutedEventArgs e)
         {
+            bool operationResult = false;
+
             if (IsFree)
             {
                 try
                 {
                     IsFree = false;
 
-                    bool operationResult = Pairing ? await _adb.PairWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text, tb_DevicePairingCode.Text) : await _adb.ConnectWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text);
-                    if (operationResult)
-                    {
-                        await ScanDevices();
-                        MessageBox.Show("Wireless connection succeed! Please scan devices again.");
-                    }
-                    else
-                    {
-                        MessageBox.Show("Wireless connection failed! Please try again.");
-                    }
+                    operationResult = Pairing ? await _adb.PairWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text, tb_DevicePairingCode.Text) : await _adb.ConnectWirelessDevice(tb_DeviceIpAddress.Text, tb_DevicePort.Text);
                 }
                 catch (Exception ex)
                 {
@@ -240,6 +233,29 @@ namespace DeviceManager
                 finally
                 {
                     IsFree = true;
+
+                    // Clean all textboxes and deselect checkbox
+                    foreach (var item in grid_WirelessConnection.Children)
+                    {
+                        if (item is CheckBox checkBox)
+                        {
+                            checkBox.IsChecked = false;
+                        }
+                        else if (item is TextBox textBox)
+                        {
+                            textBox.Text = string.Empty;
+                        }
+                    }
+
+                    if (operationResult)
+                    {
+                        await ScanDevices();
+                        MessageBox.Show("Wireless connection succeed!");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Wireless connection failed! Please try again.");
+                    }
                 }
             }
         }
@@ -270,7 +286,9 @@ namespace DeviceManager
 #else
                     ActiveDevice.AuthStatus = await _adb.AuthorizeDevice(ActiveDevice.Id) ? Enums.DeviceAuthStatus.AUTHORIZED : Enums.DeviceAuthStatus.UNAUTHORIZED;
 #endif
+                    // Force refresh
                     OnPropertyChanged(nameof(ActiveDevice));
+                    OnPropertyChanged(nameof(ConnectedDevices));
                 }
                 catch (Exception ex)
                 {
@@ -435,6 +453,15 @@ namespace DeviceManager
                 finally
                 {
                     IsFree = true;
+
+                    // De-check all checkboxes
+                    foreach (var item in grid_FolderCheckboxes.Children)
+                    {
+                        if (item is CheckBox checkbox)
+                        {
+                            checkbox.IsChecked = false;
+                        }
+                    }
                 }
             }
         }
@@ -467,6 +494,9 @@ namespace DeviceManager
                 finally
                 {
                     IsFree = true;
+
+                    // Reset field in textbox
+                    BackupFolder = string.Empty;
                 }
             }
         }
@@ -511,6 +541,24 @@ namespace DeviceManager
             }
         }
 
+        private async void btn_DisableApp_Sys_Click(object sender, RoutedEventArgs e)
+        {
+            string packageName = cb_SystemApps.SelectedItem as string;
+            await DisableApp(packageName);
+        }
+
+        private async void btn_DisableApp_Third_Click(object sender, RoutedEventArgs e)
+        {
+            string packageName = cb_ThirdyPartApps.SelectedItem as string;
+            await DisableApp(packageName);
+        }
+
+        private async void btn_DisableApp_All_Click(object sender, RoutedEventArgs e)
+        {
+            string packageName = cb_AllApps.SelectedItem as string;
+            await DisableApp(packageName);
+        }
+
         #region "Functions"
 
         private async Task ScanDevices()
@@ -544,6 +592,44 @@ namespace DeviceManager
             }
         }
 
+        private async Task DisableApp(string packageName)
+        {
+            bool uninstallResult = false;
+
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+
+                    if (packageName != null && !string.IsNullOrWhiteSpace(packageName))
+                    {
+                        uninstallResult = await _adb.UninstallApp(ActiveDevice.Id, packageName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show
+                    (
+                        $"Error while uninstalling device app! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
+                }
+                finally
+                {
+                    IsFree = true;
+
+                    if (uninstallResult)
+                    {
+                        MessageBox.Show("Package removed succesfully!");
+
+                        // Refresh app list
+                        btn_RefreshApps_Click(null, null);
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region "Binding"
@@ -556,6 +642,6 @@ namespace DeviceManager
         }
 
         #endregion
-        
+
     }
 }

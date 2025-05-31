@@ -12,9 +12,9 @@ namespace DeviceManager.Converters
         {
             Visibility resultVisibility = Visibility.Collapsed;
 
-            if (value is Enums.DeviceAuthStatus deviceAuthStatus)
+            if (value != null && value is Device activeDevice)
             {
-                resultVisibility = deviceAuthStatus.Equals(Enums.DeviceAuthStatus.AUTHORIZED) ? Visibility.Visible : Visibility.Collapsed;
+                resultVisibility = activeDevice.AuthStatus.Equals(Enums.DeviceAuthStatus.AUTHORIZED) ? Visibility.Visible : Visibility.Collapsed;
             }
 
             return resultVisibility;

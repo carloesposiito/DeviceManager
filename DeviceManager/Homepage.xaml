@@ -17,7 +17,7 @@
 
     <Window.Resources>
         <converters:Converter_IsFreeToCursor x:Key="converter_IsFreeToCursor" />
-        <converters:Converter_ActiveDeviceToVisibility x:Key="converter_ActiveDeviceToVisibility" />
+        <converters:Converter_DevicesCountToVisibility x:Key="converter_DevicesCountToVisibility" />
         <converters:Converter_ActiveDeviceToIsEnabled x:Key="converter_Converter_ActiveDeviceToIsEnabled" />
         <converters:Converter_AuthStatusToVisibility x:Key="converter_AuthStatusToVisibility" />
         <converters:Converter_AuthStatusToVisibility_Reverse x:Key="converter_AuthStatusToVisibility_Reverse" />
@@ -38,7 +38,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    
+
                     <!--Devices groupbox-->
                     <GroupBox Grid.Row="0"
                               Style="{StaticResource gp_Default}">
@@ -51,8 +51,9 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            
+
                             <Button Click="btn_ScanDevices_Click"
                                     Content="Scan devices"
                                     Grid.Row="0"
@@ -60,7 +61,7 @@
                                     Style="{StaticResource btn_Default}"
                                     x:Name="btn_ScanDevices" />
 
-                            <Grid Grid.Row="1" Margin="0,0,0,5">
+                            <Grid Grid.Row="1" Margin="0,0,0,10">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
@@ -81,8 +82,26 @@
 
                             </Grid>
 
+                            <Grid Grid.Row="2"
+                                  Visibility="{Binding ActiveDevice, Converter={StaticResource converter_AuthStatusToVisibility_Reverse}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60*" />
+                                    <ColumnDefinition Width="40*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Label Content="Please authorize device to continue:"
+                                       Grid.Column="0"
+                                       Style="{StaticResource lbl_Default}" />
+
+                                <Button Content="Authorize"
+                                        Click="btn_AuthorizeDevice_Click"
+                                        Grid.Column="1"
+                                        Style="{StaticResource btn_Operations}" />  
+
+                            </Grid>
+
                         </Grid>
-                        
+
                     </GroupBox>
 
                     <!--Wireless connection groupbox-->
@@ -92,8 +111,8 @@
                             <Label Content="Wireless connection"
                                    FontStyle="Italic" />
                         </GroupBox.Header>
-                        
-                        <Grid>
+
+                        <Grid x:Name="grid_WirelessConnection">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -124,7 +143,8 @@
                                       Style="{StaticResource cb_Default}"
                                       x:Name="checkBox_PairingNeeded" />
 
-                            <Grid Grid.Row="5" Visibility="{Binding Pairing, Converter={StaticResource converter_PairingToVisibility}}">
+                            <Grid Grid.Row="5"
+                                  Visibility="{Binding Pairing, Converter={StaticResource converter_PairingToVisibility}}">
                                 <Grid.RowDefinitions>
                                     <RowDefinition />
                                     <RowDefinition />
@@ -155,9 +175,9 @@
             </TabItem>
 
             <TabItem Header="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToTabFilesName}}"
-                     d:Header="Pixel 1 - Files"
-                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToVisibility}}">
-                
+                     d:Header="Device - Files"
+                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_AuthStatusToVisibility}}">
+
                 <ScrollViewer VerticalScrollBarVisibility="Hidden">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -177,7 +197,7 @@
                                        FontStyle="Italic" />
                             </GroupBox.Header>
 
-                            <Grid Margin="0,0,0,10">
+                            <!--<Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="60*" />
                                     <ColumnDefinition Width="40*" />
@@ -193,19 +213,18 @@
                                         Margin="0"
                                         Style="{StaticResource btn_Operations}" />
 
-                            </Grid>
+                            </Grid>-->
 
                         </GroupBox>
 
                         <!--Operations groupbox-->
                         <GroupBox Grid.Row="1"
-                                  Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
                                   Style="{StaticResource gp_Default}">
                             <GroupBox.Header>
                                 <Label Content="Operations"
                                        FontStyle="Italic" />
                             </GroupBox.Header>
-                            
+
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="60*" />
@@ -227,7 +246,6 @@
 
                         <!--Backup groupbox-->
                         <GroupBox Grid.Row="2"
-                                  Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
                                   Style="{StaticResource gp_Default}">
                             <GroupBox.Header>
                                 <Label Content="Backup"
@@ -253,7 +271,7 @@
                                            Style="{StaticResource lbl_Default}" />
 
                                     <!--Folders checkboxes-->
-                                    <Grid Grid.Row="1">
+                                    <Grid Grid.Row="1" x:Name="grid_FolderCheckboxes">
                                         <Grid.RowDefinitions>
                                             <RowDefinition />
                                             <RowDefinition />
@@ -377,9 +395,9 @@
                                             Grid.Row="2"
                                             Margin="0,0,0,10"
                                             Style="{StaticResource btn_Operations}"
-                                            Visibility="Collapsed"/>
+                                            Visibility="Collapsed" />
 
-                                    <Button Content="Make backup now"
+                                    <Button Content="Make backup"
                                             Click="btn_PerformBackup_Click"
                                             Grid.Row="3"
                                             Margin="0,0,0,10"
@@ -392,7 +410,6 @@
 
                         <!--Backup groupbox-->
                         <GroupBox Grid.Row="3"
-                                  Visibility="{Binding ActiveDevice.AuthStatus, Converter={StaticResource converter_AuthStatusToVisibility}}"
                                   Style="{StaticResource gp_Default}">
                             <GroupBox.Header>
                                 <Label Content="Restore"
@@ -424,7 +441,7 @@
                                         Margin="0,0,0,10"
                                         Style="{StaticResource btn_Default}" />
 
-                                <Button Content="Restore backup now"
+                                <Button Content="Restore backup"
                                         Click="btn_RestoreBackup_Click"
                                         Grid.Row="3"
                                         IsEnabled="{Binding BackupFolder, Converter={StaticResource converter_DirExistsToIsEnabled}}"
@@ -436,12 +453,12 @@
 
                     </Grid>
                 </ScrollViewer>
-            
+
             </TabItem>
 
             <TabItem Header="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToTabAppsName}}"
-                     d:Header="Pixel 1 - Apps"
-                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToVisibility}}">
+                     d:Header="Device - Apps"
+                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_AuthStatusToVisibility}}">
 
                 <ScrollViewer VerticalScrollBarVisibility="Hidden">
                     <Grid>
@@ -499,7 +516,11 @@
                                                   Style="{StaticResource combo_Default}"
                                                   x:Name="cb_SystemApps" />
 
-                                        <Button Content="Disable" Grid.Column="1" Style="{StaticResource btn_Operations}" />
+                                        <Button Content="Disable"
+                                                Click="btn_DisableApp_Sys_Click"
+                                                Grid.Column="1"
+                                                Margin="10,0,0,0"
+                                                Style="{StaticResource btn_Operations}" />
 
                                     </Grid>
                                 </Grid>
@@ -513,7 +534,7 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <Label Content="Thirdy part apps:"
+                                    <Label Content="Third party apps:"
                                            Grid.Row="0"
                                            Style="{StaticResource lbl_Default}" />
 
@@ -529,7 +550,9 @@
                                                   x:Name="cb_ThirdyPartApps" />
 
                                         <Button Content="Disable"
+                                                Click="btn_DisableApp_Third_Click"
                                                 Grid.Column="1"
+                                                Margin="10,0,0,0"
                                                 Style="{StaticResource btn_Operations}" />
 
                                     </Grid>
@@ -560,7 +583,9 @@
                                                   x:Name="cb_AllApps" />
 
                                         <Button Content="Disable"
+                                                Click="btn_DisableApp_All_Click"
                                                 Grid.Column="1"
+                                                Margin="10,0,0,0"
                                                 Style="{StaticResource btn_Operations}" />
 
                                     </Grid>
@@ -576,7 +601,7 @@
             </TabItem>
 
             <TabItem Header="Photos"
-                     Visibility="{Binding ActiveDevice, Converter={StaticResource converter_ActiveDeviceToVisibility}}">
+                     Visibility="{Binding ConnectedDevices, Converter={StaticResource converter_DevicesCountToVisibility}}">
 
                 <ScrollViewer VerticalScrollBarVisibility="Hidden">
                     <Grid>
@@ -615,6 +640,7 @@
                                            Style="{StaticResource lbl_Default}" />
 
                                     <ComboBox ItemsSource="{Binding ConnectedDevices}"
+                                              DisplayMemberPath="Model"
                                               Grid.Row="1"
                                               SelectedIndex="0"
                                               Style="{StaticResource combo_Default}"
@@ -633,11 +659,16 @@
                                            Style="{StaticResource lbl_Default}" />
 
                                     <ComboBox ItemsSource="{Binding ConnectedDevices}"
+                                              DisplayMemberPath="Model"
                                               Grid.Row="1"
                                               SelectedIndex="0"
                                               Style="{StaticResource combo_Default}"
                                               x:Name="cb_DestinationDevice" />
                                 </Grid>
+
+                                <CheckBox Content="Delete photos from origin device when completed" Grid.Row="2" Margin="0,10,0,5" Style="{StaticResource cb_Default}" />
+
+                                <Button Content="Transfer now" Grid.Row="3" Style="{StaticResource btn_Default}" />
 
                             </Grid>
 

@@ -10,11 +10,11 @@ namespace DeviceManager.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            Visibility resultVisibility = Visibility.Visible;
-
-            if (value is Enums.DeviceAuthStatus deviceAuthStatus)
+            Visibility resultVisibility = Visibility.Collapsed;
+            
+            if (value != null && value is Device activeDevice)
             {
-                resultVisibility = deviceAuthStatus.Equals(Enums.DeviceAuthStatus.AUTHORIZED) ? Visibility.Collapsed : Visibility.Visible;
+                resultVisibility = activeDevice.AuthStatus.Equals(Enums.DeviceAuthStatus.AUTHORIZED) ? Visibility.Collapsed : Visibility.Visible;
             }
 
             return resultVisibility;
