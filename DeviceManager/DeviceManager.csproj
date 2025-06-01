@@ -34,6 +34,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>DeviceManager_Icon.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -67,9 +70,12 @@
     <Compile Include="Converters\Converter_ActiveDeviceToIsEnabled.cs" />
     <Compile Include="Converters\Converter_ActiveDeviceToTabAppsName.cs" />
     <Compile Include="Converters\Converter_ActiveDeviceToTabFilesName.cs" />
+    <Compile Include="Converters\Converter_ActiveDeviceToTabPhotosName.cs" />
     <Compile Include="Converters\Converter_AuthStatusToVisibility_Reverse.cs" />
     <Compile Include="Converters\Converter_AuthStatusToVisibility.cs" />
-    <Compile Include="Converters\Converter_DevicesCountToVisibility.cs" />
+    <Compile Include="Converters\MultiConverter_DevicesNotEqualToIsEnabled.cs" />
+    <Compile Include="Converters\MultiConverter_DevicesNotEqualToItemSource.cs" />
+    <Compile Include="Converters\MutiConverter_DevicesCountToVisibility.cs" />
     <Compile Include="Converters\Converter_DirExistsToIsEnabled.cs" />
     <Compile Include="Converters\Converter_IsFreeToCursor.cs" />
     <Compile Include="Converters\Converter_PairingToVisibility.cs" />
@@ -115,6 +121,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="DeviceManager_Icon.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

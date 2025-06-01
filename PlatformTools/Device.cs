@@ -108,6 +108,6 @@ namespace PlatformTools
                 _authStatus = Enums.DeviceAuthStatus.UNAUTHORIZED;
             }
         }
-    
+
     }
 }

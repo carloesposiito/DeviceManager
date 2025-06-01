@@ -27,6 +27,7 @@ namespace DeviceManager
         private ObservableCollection<string> _allApps = new ObservableCollection<string>();
         private ObservableCollection<string> _systemApps = new ObservableCollection<string>();
         private ObservableCollection<string> _thirdyPartApps = new ObservableCollection<string>();
+        private Device _destionationDevice = null;
 
         #endregion
 
@@ -172,6 +173,19 @@ namespace DeviceManager
                 {
                     _systemApps = value;
                     OnPropertyChanged(nameof(SystemApps));
+                }
+            }
+        }
+
+        public Device DestinationDevice
+        {
+            get => _destionationDevice;
+            set
+            {
+                if (_destionationDevice != value)
+                {
+                    _destionationDevice = value;
+                    OnPropertyChanged(nameof(DestinationDevice));
                 }
             }
         }
@@ -599,6 +613,22 @@ namespace DeviceManager
                 finally
                 {
                     IsFree = true;
+
+                    // Reset delete pics checkbox
+                    checkBox_DeletePicsFromOriginDevice.IsChecked = false;
+                }
+            }
+        }
+
+        private void cb_DestinationDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ComboBox comboBox = sender as ComboBox;
+            if (comboBox != null)
+            {
+                Device selectedDevice = comboBox.SelectedItem as Device;
+                if (selectedDevice != null)
+                {
+                    DestinationDevice = selectedDevice;
                 }
             }
         }
@@ -620,6 +650,7 @@ namespace DeviceManager
 
                     // Select first element of the list
                     cb_ConnectedDevices.SelectedIndex = 0;
+                    cb_DestinationDevice.SelectedIndex = 0;
                 }
                 catch (Exception ex)
                 {
