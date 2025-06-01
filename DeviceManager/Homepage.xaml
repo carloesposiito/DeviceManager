@@ -642,7 +642,7 @@
                                     <ComboBox ItemsSource="{Binding ConnectedDevices}"
                                               DisplayMemberPath="Model"
                                               Grid.Row="1"
-                                              SelectedIndex="0"
+                                              SelectedItem="{Binding ActiveDevice}"
                                               Style="{StaticResource combo_Default}"
                                               x:Name="cb_OriginDevice" />
                                 </Grid>
@@ -666,9 +666,9 @@
                                               x:Name="cb_DestinationDevice" />
                                 </Grid>
 
-                                <CheckBox Content="Delete photos from origin device when completed" Grid.Row="2" Margin="0,10,0,5" Style="{StaticResource cb_Default}" />
+                                <CheckBox Content="Delete photos from origin device when completed" Grid.Row="2" Margin="0,10,0,5" Style="{StaticResource cb_Default}" x:Name="checkBox_DeletePicsFromOriginDevice"/>
 
-                                <Button Content="Transfer now" Grid.Row="3" Style="{StaticResource btn_Default}" />
+                                <Button Click="btn_TransferPhotos_Click" Content="Transfer now" Grid.Row="3" Style="{StaticResource btn_Default}" />
 
                             </Grid>
 

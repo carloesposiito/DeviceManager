@@ -559,6 +559,50 @@ namespace DeviceManager
             await DisableApp(packageName);
         }
 
+        private async void btn_TransferPhotos_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsFree)
+            {
+                try
+                {
+                    IsFree = false;
+
+                    Device sourceDevice = cb_OriginDevice.SelectedItem as Device;
+                    Device destinationDevice = cb_DestinationDevice.SelectedItem as Device;
+
+                    if (sourceDevice != null && destinationDevice != null && !sourceDevice.Equals(destinationDevice))
+                    {
+                        Tuple<bool, int, int, int, int> operationResult = await _adb.TransferPhotos(sourceDevice, destinationDevice, (bool)checkBox_DeletePicsFromOriginDevice.IsChecked);
+
+                        if (operationResult.Item1)
+                        {
+                            // Everything OK
+                            MessageBox.Show($"Transferred {operationResult.Item2}//{operationResult.Item4} files.");
+                        }
+                        else
+                        {
+                            // Not OK
+                            MessageBox.Show(
+                                $"Extracted {operationResult.Item2} photos ({operationResult.Item3} skipped).\n" +
+                                $"Pushed {operationResult.Item4} photos ({operationResult.Item5} skipped).");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show
+                    (
+                        $"Error transferring photos! Error details:\n\n" +
+                        $"{ex.Message}"
+                    );
+                }
+                finally
+                {
+                    IsFree = true;
+                }
+            }
+        }
+
         #region "Functions"
 
         private async Task ScanDevices()

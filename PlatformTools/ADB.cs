@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -217,6 +218,7 @@ namespace PlatformTools
 
 #if DEBUG
                     foundDevices.Add(new Device($"Pixel 1\tdevice"));
+                    foundDevices.Add(new Device($"Pixel 3\tdevice"));
                     foundDevices.Add(new Device($"Pixel 2 XL\tunauthorized"));
 #endif
                 }
@@ -681,18 +683,18 @@ namespace PlatformTools
 
             try
             {
-                if (string.IsNullOrWhiteSpace(destinationFolder))
+                if (foldersToBackup.Count > 0)
                 {
-                    destinationFolder = Constants.PATHS.BACKUP_DIR;
-                    Directory.CreateDirectory(destinationFolder);
-                }
+                    if (string.IsNullOrWhiteSpace(destinationFolder))
+                    {
+                        string deviceModel = sourceDevice.Id.Contains(":") ? sourceDevice.Id.Replace(":", ".") : sourceDevice.Id;
+                        destinationFolder = $"{Constants.PATHS.BACKUP_DIR}\\{deviceModel}_{DateTime.Now.ToString("yy.MM.dd_HH.mm.ss")}\\0";
+                    }
+                    else
+                    {
+                        destinationFolder = $"{destinationFolder}\\0";
+                    }
 
-                if (foldersToBackup.Count > 0 && !string.IsNullOrWhiteSpace(destinationFolder) && Directory.Exists(destinationFolder))
-                {
-                    string deviceModel = sourceDevice.Id.Contains(":") ? sourceDevice.Id.Replace(":", ".") : sourceDevice.Id;
-                    destinationFolder = $"{destinationFolder}\\{deviceModel}_{DateTime.Now.ToString("yy.MM.dd_HH.mm.ss")}\\0";
-
-                    // Create folder
                     Directory.CreateDirectory(destinationFolder);
 
                     foreach (string folderToBackup in foldersToBackup)
@@ -861,5 +863,55 @@ namespace PlatformTools
 
             return result;
         }
+
+        /// <summary>
+        /// Move photos from DCIM\Camera folder of <paramref name="sourceDevice"/> to <paramref name="destinationDevice"/>.<br/>
+        /// If set, deletes photos from source device also.<br/>
+        /// Handles exceptions returning 0 values.
+        /// </summary>
+        /// <param name="sourceDevice">Source device.</param>
+        /// <param name="destinationDevice">Destination device.</param>
+        /// <param name="deleteSourcePics">If true deletes pictures after operation.</param>
+        /// <returns>
+        /// Returns a tuple where:<br/>
+        /// - Item 1 is a bool describing if operation successful.<br/>
+        /// - Item 2 are extracted files count.<br/>
+        /// - Item 3 are skipped files count during extraction.<br/>
+        /// - Item 4 are transferred files count to target device.<br/>
+        /// - Item 5 are skipped files count during transferring.<br/>
+        /// </returns>
+        public async Task<Tuple<bool, int, int, int, int>> TransferPhotos(Device sourceDevice, Device destinationDevice, bool deleteSourcePics)
+        {
+            Tuple<bool, int, int, int, int> operationResult = new Tuple<bool, int, int, int, int>(false, 0, 0, 0, 0);
+
+            try
+            {
+                string destinationFolder = $"{Constants.PATHS.BACKUP_DIR}\\{sourceDevice.Model}_To_{destinationDevice.Model}_{DateTime.Now.ToString("yy.MM.dd_HH.mm.ss")}";
+                var pullingOperation = await BackupFolders(sourceDevice, new List<string> { sourceDevice.DcimFolderPath }, destinationFolder);
+                var pushingOperation = await RestoreBackup(destinationDevice, destinationFolder);
+
+                // Build result
+                bool allFilesTransferred = pullingOperation.Item1.Equals(pushingOperation.Item2);
+                operationResult = new Tuple<bool, int, int, int, int>(allFilesTransferred, pullingOperation.Item1, pullingOperation.Item2,pushingOperation.Item2, pushingOperation.Item3);
+
+                if (deleteSourcePics && allFilesTransferred)
+                {
+                    await ExecuteDeleteCameraCommand(sourceDevice.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                operationResult = new Tuple<bool, int, int, int, int>(false, 0, 0, 0, 0);
+
+                MessageBox.Show
+                (
+                    $"Error while transferring photos! Error details:\n\n" +
+                    $"{ex.Message}"
+                );
+            }
+
+            return operationResult;
+        }
+
     }
 }
